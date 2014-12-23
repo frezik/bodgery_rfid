@@ -40,6 +40,9 @@ my $DEACTIVATE_TAG_SQL = q{
 my $REACTIVATE_TAG_SQL = q{
     UPDATE bodgery_rfid SET active = 1 WHERE rfid = ?
 };
+my $INSERT_ENTRY_TIME_SQL = q{
+    INSERT INTO entry_log (rfid, is_active_tag, is_found_tag) VALUES (?, ?, ?)
+};
 
 get '/check_tag/:tag' => sub {
     my ($c) = @_;
@@ -56,16 +59,18 @@ get '/check_tag/:tag' => sub {
     if( @row ) {
         my ($id, $active) = @row;
         if( $active ) {
-            # Everything OK, do nothing
+            log_entry_time( $tag, 1, 1 );
         }
         else {
             $text = "Tag $tag is not active";
             $code = 403;
+            log_entry_time( $tag, 0, 1 );
         }
     }
     else {
         $text = "Tag $tag was not found";
         $code = 404;
+        log_entry_time( $tag, 0, 0 );
     }
 
     $sth->finish;
@@ -125,6 +130,15 @@ post '/secure/reactivate_tag/:tag' => sub {
         $dbh = $in_dbh;
         return 1;
     }
+}
+
+sub log_entry_time
+{
+    my ($tag, $is_active_tag, $is_found_tag) = @_;
+    my $dbh = get_dbh();
+    $dbh->do( $INSERT_ENTRY_TIME_SQL, {}, $tag, $is_active_tag, $is_found_tag )
+        or die "Can't do statement: " . $dbh->errstr;
+    return 1;
 }
 
 app->start;

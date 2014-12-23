@@ -7,6 +7,10 @@ CREATE TABLE bodgery_rfid (
 
 CREATE TABLE entry_log (
     id              SERIAL PRIMARY KEY NOT NULL,
-    bodgery_rfid_id INTEGER NOT NULL,
-    entry_time      TIMESTAMP NOT NULL DEFAULT NOW()
+    -- This could be some random RFID tag, which we may not have in our 
+    -- database.  So don't reference tags in bodgery_rfid directly.
+    rfid            TEXT NOT NULL,
+    entry_time      TIMESTAMP NOT NULL DEFAULT NOW(),
+    is_active_tag   BOOLEAN NOT NULL,
+    is_found_tag    BOOLEAN NOT NULL
 );
