@@ -25,15 +25,16 @@
 use v5.14;
 use warnings;
 use Mojolicious::Lite;
+use DBI;
 use SQL::Abstract;
+
+use constant DB_NAME     => 'bodgery_rfid';
+use constant DB_USERNAME => '';
+use constant DB_PASSWORD => '';
 
 
 my $FIND_TAG_SQL = q{
     SELECT id, active FROM bodgery_rfid WHERE rfid = ?
-};
-my $INSERT_TAG_SQL = q{
-    INSERT INTO bodgery_rfid (rfid, full_name, active) 
-        VALUES (?, ?, 1)
 };
 my $DEACTIVATE_TAG_SQL = q{
     UPDATE bodgery_rfid SET active = 0 WHERE rfid = ?
@@ -86,7 +87,13 @@ put '/secure/new_tag/:tag/:full_name' => sub {
     my $full_name = $c->param( 'full_name' );
 
     my $dbh = get_dbh();
-    $dbh->do( $INSERT_TAG_SQL, {}, $tag, $full_name )
+    my $sa = SQL::Abstract->new;
+    my ($sql, @params) = $sa->insert( 'bodgery_rfid', {
+        rfid      => $tag,
+        full_name => $full_name,
+        active    => 1,
+    });
+    $dbh->do( $sql, {}, @params )
         or die "Can't do new tag statement: " . $dbh->errstr;
 
     $c->res->code( 201 );
@@ -187,7 +194,16 @@ get '/secure/search_entry_log' => sub {
     sub get_dbh
     {
         return $dbh if defined $dbh;
-        # TODO make database connection
+        $dbh = DBI->connect(
+            'dbi:Pg:dbname=' . DB_NAME,
+            DB_USERNAME,
+            DB_PASSWORD,
+            {
+                AutoCommit => 1,
+                RaiseError => 0,
+            },
+        ) or die "Could not connect to database: " . DBI->errstr;
+        return $dbh;
     }
 
     sub set_dbh

@@ -1,7 +1,7 @@
 <html>
 <head>
 <title>Add RFID Tag</title>
-<script type="text/javascript src="/jquery-2.1.3.min.js"></script>
+<script type="text/javascript" src="/jquery-2.1.3.min.js"></script>
 <script type="text/javascript">
 
 function submit_rfid ()
@@ -12,7 +12,7 @@ function submit_rfid ()
     var url  = "/secure/new_tag/" + tag + "/" + name;
 
     $.ajax( url, {
-        "type": "POST",
+        "type": "PUT",
         "error": function (jqXHR, str, exception) {
             msg_div.text( "Error adding tag: " + str );
         },
