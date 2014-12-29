@@ -36,12 +36,6 @@ use constant DB_PASSWORD => '';
 my $FIND_TAG_SQL = q{
     SELECT id, active FROM bodgery_rfid WHERE rfid = ?
 };
-my $DEACTIVATE_TAG_SQL = q{
-    UPDATE bodgery_rfid SET active = 0 WHERE rfid = ?
-};
-my $REACTIVATE_TAG_SQL = q{
-    UPDATE bodgery_rfid SET active = 1 WHERE rfid = ?
-};
 my $INSERT_ENTRY_TIME_SQL = q{
     INSERT INTO entry_log (rfid, is_active_tag, is_found_tag) VALUES (?, ?, ?)
 };
