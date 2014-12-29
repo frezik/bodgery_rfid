@@ -1,0 +1,88 @@
+<html>
+<head>
+<title>Entry Log</title>
+<script type="text/javascript" src="/jquery-2.1.3.min.js"></script>
+<script type="text/javascript">
+var tag_table;
+var msg_div;
+
+$( document ).ready(function () {
+    tag_table = $( "#tag_table" );
+    msg_div   = $( "#msg" );
+    get_list( 0, 0 );
+});
+
+function get_list ( offset, limit, rfid )
+{
+    var url = "/secure/search_entry_log";
+    msg_div.text( "Loading . . . " );
+    $.ajax( url, {
+        "type": "GET",
+        "dataType": "text",
+        "data": {
+            "offset": offset,
+            "limit":  limit,
+            "tag":    rfid
+        },
+        "error": function (jqXHR, str, exception) {
+            msg_div.text( "Error searching log: " + str );
+        },
+        "success": function (data, str, jqXHR) {
+            msg_div.text( "" );
+            update_table( data );
+        }
+    });
+}
+
+function update_table( csv_data )
+{
+    $( ".row_data" ).remove();
+
+    var rows = csv_data.split("\n");
+    rows.forEach( function (value) {
+        if( value == "" ) return 1;
+        var row_data = value.split( "," );
+        var name       = row_data[0] || '&nbsp';
+        var rfid       = row_data[1];
+        var entry_time = row_data[2];
+        var is_active  = row_data[3];
+        var is_found   = row_data[4];
+
+        tag_table.append( '<tr class="row_data">'
+            + "<td>" + name       + "</td>"
+            + "<td>" + rfid       + "</td>"
+            + "<td>" + entry_time + "</td>"
+            + "<td>" + is_active  + "</td>"
+            + "<td>" + is_found   + "</td>"
+            + "</tr>"
+        );
+    });
+
+    return 1;
+}
+
+</script>
+</head>
+<body>
+
+<h1>Entry Log</h1>
+
+<div id="msg"></div>
+
+<p><input type="button" value="Refresh" onClick="get_list( 0, 0 )"></p>
+<p>Search for RFID tag: <input type="text" id="search_rfid" name="search_rfid">
+    <input type="button" value="Search" onClick="get_list( 0, 0, 
+        $('#search_rfid').val() )"></p>
+
+<table id="tag_table" border="1" cellpadding="2" cellspacing="2">
+    <tr id="tag_table_header">
+        <th>Name</th>
+        <th>RFID Tag</th>
+        <th>Entry Time</th>
+        <th>Is Active?</th>
+        <th>Is Found?</th>
+    </tr>
+</table>
+
+</body>
+</html>

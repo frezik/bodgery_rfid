@@ -74,14 +74,18 @@ $t->get_ok( '/secure/search_tags?tag=3456', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_is( "" );
 
+$t->get_ok( '/check_tag/1236' )
+    ->status_is( '404' );
+
 my $date_reg = qr/[\d\-: ]+/;
 $t->get_ok( '/secure/search_entry_log', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_like( qr/\A
-        1234,$date_reg,0,0 \n
-        1234,$date_reg,1,1 \n
-        1234,$date_reg,0,1 \n
-        1234,$date_reg,1,1 \n
+        foo,1234,$date_reg,0,0 \n
+        foo,1234,$date_reg,1,1 \n
+        foo,1234,$date_reg,0,1 \n
+        foo,1234,$date_reg,1,1 \n
+        ,1236,$date_reg,0,0 \n
     /msx );
 $t->get_ok( '/secure/search_entry_log?tag=3456', {Accept => 'text/plain'} )
     ->status_is( '200' )
@@ -89,10 +93,10 @@ $t->get_ok( '/secure/search_entry_log?tag=3456', {Accept => 'text/plain'} )
 $t->get_ok( '/secure/search_entry_log?tag=1234', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_like( qr/\A
-        1234,$date_reg,0,0 \n
-        1234,$date_reg,1,1 \n
-        1234,$date_reg,0,1 \n
-        1234,$date_reg,1,1 \n
+        foo,1234,$date_reg,0,0 \n
+        foo,1234,$date_reg,1,1 \n
+        foo,1234,$date_reg,0,1 \n
+        foo,1234,$date_reg,1,1 \n
     /mx );
 
 done_testing();

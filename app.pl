@@ -39,6 +39,12 @@ my $FIND_TAG_SQL = q{
 my $INSERT_ENTRY_TIME_SQL = q{
     INSERT INTO entry_log (rfid, is_active_tag, is_found_tag) VALUES (?, ?, ?)
 };
+my $FIND_ENTRY_LOG_SQL = q{
+    SELECT bodgery_rfid.full_name, entry_log.rfid, entry_log.entry_time,
+            entry_log.is_active_tag, entry_log.is_found_tag
+        FROM entry_log
+        LEFT OUTER JOIN bodgery_rfid ON entry_log.rfid = bodgery_rfid.rfid
+};
 
 
 get '/check_tag/:tag' => sub {
@@ -143,7 +149,7 @@ get '/secure/search_tags' => sub {
     my $name   = $c->param( 'name' );
     my $tag    = $c->param( 'tag' );
     my $offset = $c->param( 'offset' ) // 0;
-    my $limit  = $c->param( 'limit' )  // 50;
+    my $limit  = $c->param( 'limit' )  // 0;
 
     my $sa = SQL::Abstract->new;
     my ($sql, @sql_params) = $sa->select(
@@ -178,19 +184,14 @@ get '/secure/search_entry_log' => sub {
     my ($c)    = @_;
     my $tag    = $c->param( 'tag' );
     my $offset = $c->param( 'offset' ) // 0;
-    my $limit  = $c->param( 'limit' )  // 50;
+    my $limit  = $c->param( 'limit' )  // 0;
 
-    my $sa = SQL::Abstract->new;
-    my ($sql, @sql_params) = $sa->select(
-        'entry_log',
-        [qw{ rfid entry_time is_active_tag is_found_tag }],
-        {
-            (defined $tag ? ('rfid' => $tag) : ()),
-        },
-        {
-            '-asc' => 'entry_time',
-        },
-    );
+    my $sql = $FIND_ENTRY_LOG_SQL;
+    my @sql_params = ();
+    if( defined $tag ) {
+        $sql .= 'WHERE entry_log.rfid = ?';
+        push @sql_params, $tag;
+    }
 
     my $dbh = get_dbh();
     my $sth = $dbh->prepare_cached( $sql )
@@ -200,8 +201,11 @@ get '/secure/search_entry_log' => sub {
 
     my $out = '';
     while( my $row = $sth->fetchrow_arrayref ) {
-        my ($rfid, $entry_time, $is_active_tag, $is_found_tag) = @$row;
-        $out .= join( ",", $rfid, $entry_time, $is_active_tag, $is_found_tag )
+        no warnings; # $full_name could be NULL, which is OK
+        my ($full_name, $rfid, $entry_time, $is_active_tag, $is_found_tag)
+            = @$row;
+        $out .= join( ",", $full_name, $rfid, $entry_time,
+            $is_active_tag, $is_found_tag )
             . "\n";
     }
     $sth->finish;
