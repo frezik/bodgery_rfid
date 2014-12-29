@@ -27,6 +27,7 @@ use warnings;
 use Getopt::Long ();
 use WWW::Mechanize;
 use Time::HiRes ();
+use HiPi::Wiring qw( :wiring );
 
 
 my $SSL_CERT         = 'app.tyrion.crt';
@@ -36,8 +37,8 @@ my $USERNAME         = '';
 my $PASSWORD         = '';
 my $PIEZO_PIN        = 18;
 my $LOCK_PIN         = 4;
-my $GOOD_NOTES       = [ 100, 140 ];
-my $BAD_NOTES        = [ 140, 100 ];
+my $GOOD_NOTES       = [ 100, 110, 120 ];
+my $BAD_NOTES        = [ 60 ];
 my $NOTE_DURATION_MS = 500;
 my $UNLOCK_DURATION_MS = 10_000;
 Getopt::Long::GetOptions(
@@ -71,8 +72,6 @@ sub get_next_tag
 sub check_tag
 {
     my ($tag) = @_;
-    # TODO Return for test purposes.  Be sure to remove this.
-    return 1;
     
     my $result = $MECH->get( $HOST . '/check_tag/' . $tag );
     my $code   = $result->code;
@@ -94,7 +93,7 @@ sub play_notes
         my $period = sprintf '%.0f', 600000/440/2**(($freq-69)/12);
         HiPi::Wiring::pwmSetRange( $period );
         HiPi::Wiring::pwmWrite( $PIEZO_PIN, $period / 2 );
-        HiPi::Wiring::delay( DELAY_TIME_MS );
+        HiPi::Wiring::delay( $NOTE_DURATION_MS );
     }
 
     HiPi::Wiring::pwmWrite( $PIEZO_PIN, 0 );
@@ -132,7 +131,7 @@ sub do_tag_not_found_action
     return 1;
 }
 
-sub do_unkown_error_action
+sub do_unknown_error_action
 {
     say "Unknown error";
     play_notes( @$BAD_NOTES );
@@ -141,6 +140,8 @@ sub do_unkown_error_action
 
 
 {
+    say "Ready for input";
+
     while(1) {
         my $tag = get_next_tag();
         my $result = check_tag( $tag );
