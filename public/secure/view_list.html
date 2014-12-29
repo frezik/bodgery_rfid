@@ -6,12 +6,10 @@
 var tag_table;
 var msg_div;
 
-// TODO keep track of last offset/limit for refreshing data
-// TODO "next"/"last" button for new offset
 $( document ).ready(function () {
     tag_table = $( "#tag_table" );
     msg_div   = $( "#msg" );
-    get_list( 0, 50 );
+    get_list( 0, 0 );
 });
 
 function get_list ( offset, limit, name, rfid )
@@ -51,7 +49,7 @@ function update_table( csv_data )
 
         var active_button_text;
         var active_button_action;
-        if( active ) {
+        if( active > 0 ) {
             active_button_text   = "Deactivate";
             active_button_action = "deactivate_tag('" + rfid + "')";
         }
@@ -60,9 +58,8 @@ function update_table( csv_data )
             active_button_action = "reactivate_tag('" + rfid + "')";
         }
         active_button = '<input type="button" value="' + active_button_text + '"'
-            + ' onClick="' + active_button_action + '; get_list( 0, 50 )">';
+            + ' onClick="' + active_button_action + '; get_list( 0, 0 )">';
 
-// TODO make active_button work
         tag_table.append( '<tr class="row_data">'
             + "<td>" + name   + "</td>"
             + "<td>" + rfid   + "</td>"
@@ -114,12 +111,12 @@ function reactivate_tag( rfid )
 
 <div id="msg"></div>
 
-<p><input type="button" value="Refresh" onClick="get_list( 0, 50 )"></p>
+<p><input type="button" value="Refresh" onClick="get_list( 0, 0 )"></p>
 <p>Search for name: <input type="text" id="search_name" name="search_name">
-    <input type="button" value="Search" onClick="get_list( 0, 50,
+    <input type="button" value="Search" onClick="get_list( 0, 0,
         $('#search_name').val() )"></p>
 <p>Search for RFID tag: <input type="text" id="search_rfid" name="search_rfid">
-    <input type="button" value="Search" onClick="get_list( 0, 50, '',
+    <input type="button" value="Search" onClick="get_list( 0, 0, '',
         $('#search_rfid').val() )"></p>
 
 <table id="tag_table" border="1" cellpadding="2" cellspacing="2">

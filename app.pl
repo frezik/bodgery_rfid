@@ -105,7 +105,17 @@ post '/secure/deactivate_tag/:tag' => sub {
     my $tag = $c->param( 'tag' );
 
     my $dbh = get_dbh();
-    $dbh->do( $DEACTIVATE_TAG_SQL, {}, $tag )
+    my $sa = SQL::Abstract->new;
+    my ($sql, @sql_bind) = $sa->update(
+        'bodgery_rfid',
+        {
+            active => 0,
+        },
+        {
+            rfid => $tag,
+        },
+    );
+    $dbh->do( $sql, {}, @sql_bind )
         or die "Can't do deactivate statement: " . $dbh->errstr;
 
     $c->res->code( 200 );
@@ -117,8 +127,18 @@ post '/secure/reactivate_tag/:tag' => sub {
     my $tag = $c->param( 'tag' );
 
     my $dbh = get_dbh();
-    $dbh->do( $REACTIVATE_TAG_SQL, {}, $tag )
-        or die "Can't do reactivate statement: " . $dbh->errstr;
+    my $sa = SQL::Abstract->new;
+    my ($sql, @sql_bind) = $sa->update(
+        'bodgery_rfid',
+        {
+            active => 1,
+        },
+        {
+            rfid => $tag,
+        },
+    );
+    $dbh->do( $sql, {}, @sql_bind )
+        or die "Can't do deactivate statement: " . $dbh->errstr;
 
     $c->res->code( 200 );
     $c->render( text => '' );
