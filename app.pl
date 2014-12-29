@@ -125,17 +125,21 @@ post '/secure/reactivate_tag/:tag' => sub {
 };
 
 get '/secure/search_tags' => sub {
-    my ($c) = @_;
-    my $name = $c->param( 'name' );
-    my $tag  = $c->param( 'tag' );
+    my ($c)    = @_;
+    my $name   = $c->param( 'name' );
+    my $tag    = $c->param( 'tag' );
+    my $offset = $c->param( 'offset' ) // 0;
+    my $limit  = $c->param( 'limit' )  // 50;
 
     my $sa = SQL::Abstract->new;
     my ($sql, @sql_params) = $sa->select(
         'bodgery_rfid',
         [qw{ rfid full_name active }],
         {
-            (defined $name ? ('full_name' => $name) : ()),
-            (defined $tag  ? ('rfid'      => $tag)  : ()),
+            (defined $name
+                ? ('lower(full_name)' => { 'like', lc($name) . '%' })
+                : ()),
+            (defined $tag  ? ('rfid' => $tag) : ()),
         },
     );
 
@@ -157,8 +161,10 @@ get '/secure/search_tags' => sub {
 };
 
 get '/secure/search_entry_log' => sub {
-    my ($c) = @_;
-    my $tag = $c->param( 'tag' );
+    my ($c)    = @_;
+    my $tag    = $c->param( 'tag' );
+    my $offset = $c->param( 'offset' ) // 0;
+    my $limit  = $c->param( 'limit' )  // 50;
 
     my $sa = SQL::Abstract->new;
     my ($sql, @sql_params) = $sa->select(

@@ -64,6 +64,9 @@ $t->get_ok( '/secure/search_tags?name=foo', {Accept => 'text/plain'} )
 $t->get_ok( '/secure/search_tags?name=bar', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_is( "" );
+$t->get_ok( '/secure/search_tags?name=Fo', {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_is( "1234,foo,1\n" );
 $t->get_ok( '/secure/search_tags?tag=1234', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_is( "1234,foo,1\n" );
