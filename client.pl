@@ -26,14 +26,20 @@ use v5.14;
 use warnings;
 use Getopt::Long ();
 use WWW::Mechanize;
-use Audio::Beep ();
+use Time::HiRes ();
 
 
-my $SSL_CERT   = 'app.tyrion.crt';
-my $HOST       = 'app.tyrion.thebodgery.org';
-my $AUTH_REALM = 'Authentication';
-my $USERNAME   = '';
-my $PASSWORD   = '';
+my $SSL_CERT         = 'app.tyrion.crt';
+my $HOST             = 'app.tyrion.thebodgery.org';
+my $AUTH_REALM       = 'Authentication';
+my $USERNAME         = '';
+my $PASSWORD         = '';
+my $PIEZO_PIN        = 18;
+my $LOCK_PIN         = 4;
+my $GOOD_NOTES       = [ 100, 140 ];
+my $BAD_NOTES        = [ 140, 100 ];
+my $NOTE_DURATION_MS = 500;
+my $UNLOCK_DURATION_MS = 10_000;
 Getopt::Long::GetOptions(
     'ssl-cert=s' => \$SSL_CERT,
     'host=s'     => \$HOST,
@@ -48,6 +54,12 @@ $MECH->ssl_opts(
     SSL_ca_file => $SSL_CERT,
 );
 
+HiPi::Wiring::wiringPiSetupGpio();
+HiPi::Wiring::pinMode( $LOCK_PIN, WPI_OUTPUT );
+HiPi::Wiring::pinMode( $PIEZO_PIN, WPI_PWM_OUTPUT );
+HiPi::Wiring::pwmSetMode( WPI_PWM_MODE_MS );
+
+
 
 sub get_next_tag
 {
@@ -59,6 +71,8 @@ sub get_next_tag
 sub check_tag
 {
     my ($tag) = @_;
+    # TODO Return for test purposes.  Be sure to remove this.
+    return 1;
     
     my $result = $MECH->get( $HOST . '/check_tag/' . $tag );
     my $code   = $result->code;
@@ -72,31 +86,57 @@ sub check_tag
 }
 
 
+sub play_notes
+{
+    my (@notes) = @_;
+    foreach my $freq (@notes) {
+        # Taken from http://www.raspberrypi.org/forums/viewtopic.php?f=44&t=20559
+        my $period = sprintf '%.0f', 600000/440/2**(($freq-69)/12);
+        HiPi::Wiring::pwmSetRange( $period );
+        HiPi::Wiring::pwmWrite( $PIEZO_PIN, $period / 2 );
+        HiPi::Wiring::delay( DELAY_TIME_MS );
+    }
+
+    HiPi::Wiring::pwmWrite( $PIEZO_PIN, 0 );
+}
+
 sub do_success_action
 {
     say "Good RFID";
-    my $music = "g' f bes' c8 f d4 c8 f d4 bes c g f2";
-    my $beep = Audio::Beep->new;
-    $beep->play( $music );
+    HiPi::Wiring::digitalWrite( $LOCK_PIN, WPI_HIGH );
+
+    my $start_time = Time::HiRes::time();
+    my $expect_end_time = $start_time + ($UNLOCK_DURATION_MS / 1000);
+
+    my $now = $start_time;
+    while( $now <= $expect_end_time ) {
+        play_notes( @$GOOD_NOTES );
+        $now = Time::HiRes::time();
+    }
+
+    HiPi::Wiring::digitalWrite( $LOCK_PIN, WPI_LOW );
     return 1;
 }
 
 sub do_inactive_tag_action
 {
     say "Inactive RFID";
-    Audio::Beep::beep( 2600, 500 );
+    play_notes( @$BAD_NOTES );
+    return 1;
 }
 
 sub do_tag_not_found_action
 {
     say "Did not find RFID";
-    Audio::Beep::beep( 2600, 500 );
+    play_notes( @$BAD_NOTES );
+    return 1;
 }
 
 sub do_unkown_error_action
 {
     say "Unknown error";
-    Audio::Beep::beep( 2600, 500 );
+    play_notes( @$BAD_NOTES );
+    return 1;
 }
 
 
