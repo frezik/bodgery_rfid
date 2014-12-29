@@ -1,0 +1,59 @@
+Cmp-Mod V01 Created by CvPcb (2013-may-18)-stable date = Mon Dec 22 21:53:28 2014
+
+BeginCmp
+TimeStamp = /5498E493;
+Reference = C1;
+ValeurCmp = 10uF;
+IdModule  = C1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5498E4B1;
+Reference = C2;
+ValeurCmp = 10uF;
+IdModule  = C1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5498E4A2;
+Reference = C3;
+ValeurCmp = 10uF;
+IdModule  = C1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5498E4C0;
+Reference = C4;
+ValeurCmp = 10uF;
+IdModule  = C1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5498E57B;
+Reference = P1;
+ValeurCmp = CONN_2;
+IdModule  = C1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5498E58A;
+Reference = P2;
+ValeurCmp = CONN_2;
+IdModule  = C1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5498E3F3;
+Reference = U1;
+ValeurCmp = 7805;
+IdModule  = TO220_VERT;
+EndCmp
+
+BeginCmp
+TimeStamp = /5498E455;
+Reference = U2;
+ValeurCmp = LM7812;
+IdModule  = TO220_VERT;
+EndCmp
+
+EndListe

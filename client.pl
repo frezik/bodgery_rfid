@@ -26,6 +26,7 @@ use v5.14;
 use warnings;
 use Getopt::Long ();
 use WWW::Mechanize;
+use Audio::Beep ();
 
 
 my $SSL_CERT   = 'app.tyrion.crt';
@@ -58,6 +59,7 @@ sub get_next_tag
 sub check_tag
 {
     my ($tag) = @_;
+    
     my $result = $MECH->get( $HOST . '/check_tag/' . $tag );
     my $code   = $result->code;
 
@@ -65,6 +67,36 @@ sub check_tag
         $code == 403 ? -1 :
         $code == 404 ? -2 :
         undef;
+
+    return $return;
+}
+
+
+sub do_success_action
+{
+    say "Good RFID";
+    my $music = "g' f bes' c8 f d4 c8 f d4 bes c g f2";
+    my $beep = Audio::Beep->new;
+    $beep->play( $music );
+    return 1;
+}
+
+sub do_inactive_tag_action
+{
+    say "Inactive RFID";
+    Audio::Beep::beep( 2600, 500 );
+}
+
+sub do_tag_not_found_action
+{
+    say "Did not find RFID";
+    Audio::Beep::beep( 2600, 500 );
+}
+
+sub do_unkown_error_action
+{
+    say "Unknown error";
+    Audio::Beep::beep( 2600, 500 );
 }
 
 
@@ -72,9 +104,18 @@ sub check_tag
     while(1) {
         my $tag = get_next_tag();
         my $result = check_tag( $tag );
-        say $result > 0 ? "Tag $tag OK" :
-            $result == -1 ? "Tag $tag not active" :
-            $result == -2 ? "Tag $tag not found"  :
-            "Unknown tag error";
+
+        if( $result > 0 ) {
+            do_success_action();
+        }
+        elsif( $result == -1 ) {
+            do_inactive_tag_action();
+        }
+        elsif( $result == -2 ) {
+            do_tag_not_found_action();
+        }
+        else {
+            do_unknown_error_action();
+        }
     }
 }

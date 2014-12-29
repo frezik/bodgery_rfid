@@ -55,4 +55,41 @@ $t->post_ok( '/secure/reactivate_tag/1234' )
 $t->get_ok( '/check_tag/1234' )
     ->status_is( '200' ); # Tag now exists and is active
 
+$t->get_ok( '/secure/search_tags', {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_is( "1234,foo,1\n" );
+$t->get_ok( '/secure/search_tags?name=foo', {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_is( "1234,foo,1\n" );
+$t->get_ok( '/secure/search_tags?name=bar', {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_is( "" );
+$t->get_ok( '/secure/search_tags?tag=1234', {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_is( "1234,foo,1\n" );
+$t->get_ok( '/secure/search_tags?tag=3456', {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_is( "" );
+
+my $date_reg = qr/[\d\-: ]+/;
+$t->get_ok( '/secure/search_entry_log', {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_like( qr/\A
+        1234,$date_reg,0,0 \n
+        1234,$date_reg,1,1 \n
+        1234,$date_reg,0,1 \n
+        1234,$date_reg,1,1 \n
+    /msx );
+$t->get_ok( '/secure/search_entry_log?tag=3456', {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_is( "" );
+$t->get_ok( '/secure/search_entry_log?tag=1234', {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_like( qr/\A
+        1234,$date_reg,0,0 \n
+        1234,$date_reg,1,1 \n
+        1234,$date_reg,0,1 \n
+        1234,$date_reg,1,1 \n
+    /mx );
+
 done_testing();

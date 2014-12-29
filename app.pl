@@ -25,6 +25,7 @@
 use v5.14;
 use warnings;
 use Mojolicious::Lite;
+use SQL::Abstract;
 
 
 my $FIND_TAG_SQL = q{
@@ -43,6 +44,7 @@ my $REACTIVATE_TAG_SQL = q{
 my $INSERT_ENTRY_TIME_SQL = q{
     INSERT INTO entry_log (rfid, is_active_tag, is_found_tag) VALUES (?, ?, ?)
 };
+
 
 get '/check_tag/:tag' => sub {
     my ($c) = @_;
@@ -115,6 +117,70 @@ post '/secure/reactivate_tag/:tag' => sub {
     $c->render( text => '' );
 };
 
+get '/secure/search_tags' => sub {
+    my ($c) = @_;
+    my $name = $c->param( 'name' );
+    my $tag  = $c->param( 'tag' );
+
+    my $sa = SQL::Abstract->new;
+    my ($sql, @sql_params) = $sa->select(
+        'bodgery_rfid',
+        [qw{ rfid full_name active }],
+        {
+            (defined $name ? ('full_name' => $name) : ()),
+            (defined $tag  ? ('rfid'      => $tag)  : ()),
+        },
+    );
+
+    my $dbh = get_dbh();
+    my $sth = $dbh->prepare_cached( $sql )
+        or die "Couldn't prepare statement: " . $dbh->errstr;
+    $sth->execute( @sql_params )
+        or die "Couldn't execute statement: " . $sth->errstr;
+
+    my @results = ();
+    my $out = '';
+    while( my $row = $sth->fetchrow_arrayref ) {
+        my ($rfid, $full_name, $active) = @$row;
+        $out .= "$rfid,$full_name,$active\n";
+    }
+    $sth->finish;
+
+    $c->render( text => $out );
+};
+
+get '/secure/search_entry_log' => sub {
+    my ($c) = @_;
+    my $tag = $c->param( 'tag' );
+
+    my $sa = SQL::Abstract->new;
+    my ($sql, @sql_params) = $sa->select(
+        'entry_log',
+        [qw{ rfid entry_time is_active_tag is_found_tag }],
+        {
+            (defined $tag ? ('rfid' => $tag) : ()),
+        },
+        {
+            '-asc' => 'entry_time',
+        },
+    );
+
+    my $dbh = get_dbh();
+    my $sth = $dbh->prepare_cached( $sql )
+        or die "Can't prepare statement: " . $dbh->errstr;
+    $sth->execute( @sql_params )
+        or die "Can't execute statement: " . $sth->errstr;
+
+    my $out = '';
+    while( my $row = $sth->fetchrow_arrayref ) {
+        my ($rfid, $entry_time, $is_active_tag, $is_found_tag) = @$row;
+        $out .= join( ",", $rfid, $entry_time, $is_active_tag, $is_found_tag )
+            . "\n";
+    }
+    $sth->finish;
+
+    $c->render( text => $out );
+};
 
 {
     my $dbh;
@@ -141,4 +207,5 @@ sub log_entry_time
     return 1;
 }
 
+app->types->type( 'plain' => 'text/plain' );
 app->start;

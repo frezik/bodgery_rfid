@@ -4,6 +4,7 @@ CREATE TABLE bodgery_rfid (
     full_name TEXT NOT NULL UNIQUE,
     active    BOOLEAN NOT NULL DEFAULT 1
 );
+CREATE INDEX ON bodgery_rfid ((lower(full_name));
 
 CREATE TABLE entry_log (
     id              SERIAL PRIMARY KEY NOT NULL,
@@ -14,3 +15,4 @@ CREATE TABLE entry_log (
     is_active_tag   BOOLEAN NOT NULL,
     is_found_tag    BOOLEAN NOT NULL
 );
+CREATE INDEX ON entry_log (entry_time) ASC;

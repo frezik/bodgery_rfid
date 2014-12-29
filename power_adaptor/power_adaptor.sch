@@ -1,0 +1,187 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:special
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+EELAYER 27 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date "23 dec 2014"
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L 7805 U1
+U 1 1 5498E3F3
+P 4450 2500
+F 0 "U1" H 4600 2304 60  0000 C CNN
+F 1 "7805" H 4450 2700 60  0000 C CNN
+F 2 "~" H 4450 2500 60  0000 C CNN
+F 3 "~" H 4450 2500 60  0000 C CNN
+	1    4450 2500
+	1    0    0    -1  
+$EndComp
+$Comp
+L LM7812 U2
+U 1 1 5498E455
+P 4450 3550
+F 0 "U2" H 4600 3354 60  0000 C CNN
+F 1 "LM7812" H 4450 3750 60  0000 C CNN
+F 2 "~" H 4450 3550 60  0000 C CNN
+F 3 "~" H 4450 3550 60  0000 C CNN
+	1    4450 3550
+	1    0    0    -1  
+$EndComp
+$Comp
+L C C1
+U 1 1 5498E493
+P 4050 2650
+F 0 "C1" H 4050 2750 40  0000 L CNN
+F 1 "10uF" H 4056 2565 40  0000 L CNN
+F 2 "~" H 4088 2500 30  0000 C CNN
+F 3 "~" H 4050 2650 60  0000 C CNN
+	1    4050 2650
+	1    0    0    -1  
+$EndComp
+$Comp
+L C C3
+U 1 1 5498E4A2
+P 4850 2650
+F 0 "C3" H 4850 2750 40  0000 L CNN
+F 1 "10uF" H 4856 2565 40  0000 L CNN
+F 2 "~" H 4888 2500 30  0000 C CNN
+F 3 "~" H 4850 2650 60  0000 C CNN
+	1    4850 2650
+	1    0    0    -1  
+$EndComp
+$Comp
+L C C2
+U 1 1 5498E4B1
+P 4050 3700
+F 0 "C2" H 4050 3800 40  0000 L CNN
+F 1 "10uF" H 4056 3615 40  0000 L CNN
+F 2 "~" H 4088 3550 30  0000 C CNN
+F 3 "~" H 4050 3700 60  0000 C CNN
+	1    4050 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L C C4
+U 1 1 5498E4C0
+P 4850 3700
+F 0 "C4" H 4850 3800 40  0000 L CNN
+F 1 "10uF" H 4856 3615 40  0000 L CNN
+F 2 "~" H 4888 3550 30  0000 C CNN
+F 3 "~" H 4850 3700 60  0000 C CNN
+	1    4850 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L VCC #PWR01
+U 1 1 5498E4DF
+P 3400 3100
+F 0 "#PWR01" H 3400 3200 30  0001 C CNN
+F 1 "VCC" H 3400 3200 30  0000 C CNN
+F 2 "" H 3400 3100 60  0000 C CNN
+F 3 "" H 3400 3100 60  0000 C CNN
+	1    3400 3100
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR02
+U 1 1 5498E4F5
+P 5400 4100
+F 0 "#PWR02" H 5400 4100 30  0001 C CNN
+F 1 "GND" H 5400 4030 30  0001 C CNN
+F 2 "" H 5400 4100 60  0000 C CNN
+F 3 "" H 5400 4100 60  0000 C CNN
+	1    5400 4100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3400 3100 3800 3100
+Wire Wire Line
+	3800 2450 3800 3500
+Wire Wire Line
+	3800 2450 4050 2450
+Wire Wire Line
+	3800 3500 4050 3500
+Connection ~ 3800 3100
+Wire Wire Line
+	4050 3900 5400 3900
+Wire Wire Line
+	4450 3800 4450 3900
+Connection ~ 4450 3900
+Wire Wire Line
+	5400 2850 5400 4100
+Connection ~ 4850 3900
+Wire Wire Line
+	4050 2850 5400 2850
+Wire Wire Line
+	4450 2750 4450 2850
+Connection ~ 4450 2850
+Connection ~ 5400 3900
+Connection ~ 4850 2850
+$Comp
+L CONN_2 P1
+U 1 1 5498E57B
+P 5200 3400
+F 0 "P1" V 5150 3400 40  0000 C CNN
+F 1 "CONN_2" V 5250 3400 40  0000 C CNN
+F 2 "" H 5200 3400 60  0000 C CNN
+F 3 "" H 5200 3400 60  0000 C CNN
+	1    5200 3400
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_2 P2
+U 1 1 5498E58A
+P 5450 2550
+F 0 "P2" V 5400 2550 40  0000 C CNN
+F 1 "CONN_2" V 5500 2550 40  0000 C CNN
+F 2 "" H 5450 2550 60  0000 C CNN
+F 3 "" H 5450 2550 60  0000 C CNN
+	1    5450 2550
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4850 3300 4850 2850
+Wire Wire Line
+	5100 2650 5100 2850
+Connection ~ 5100 2850
+Wire Wire Line
+	5100 2450 4850 2450
+$EndSCHEMATC

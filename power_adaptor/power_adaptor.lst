@@ -1,0 +1,24 @@
+eeschema (2013-may-18)-stable  >> Creation date: Mon Dec 22 21:48:46 2014
+#Cmp ( order = Reference )
+| C1         10uF        
+| C2         10uF        
+| C3         10uF        
+| C4         10uF        
+| P1         CONN_2      
+| P2         CONN_2      
+| U1         7805        
+| U2         LM7812      
+#End Cmp
+
+#Cmp ( order = Value )
+| 10uF         C1        
+| 10uF         C2        
+| 10uF         C3        
+| 10uF         C4        
+| CONN_2       P1        
+| CONN_2       P2        
+| 7805         U1        
+| LM7812       U2        
+#End Cmp
+
+#End List

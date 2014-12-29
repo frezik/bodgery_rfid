@@ -1,0 +1,7 @@
+* Way to add new tags
+* When good tag scanned:
+  * Play good notes
+  * Signal to unlatch door
+* When bad tag scanned:
+  * Play bad notes
+* View recent entry log
