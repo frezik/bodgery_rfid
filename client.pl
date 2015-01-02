@@ -31,24 +31,30 @@ use HiPi::Wiring qw( :wiring );
 
 
 my $SSL_CERT         = 'app.tyrion.crt';
-my $HOST             = 'app.tyrion.thebodgery.org';
+my $HOST             = 'https://app.tyrion.thebodgery.org';
 my $AUTH_REALM       = 'Authentication';
 my $USERNAME         = '';
 my $PASSWORD         = '';
 my $PIEZO_PIN        = 18;
 my $LOCK_PIN         = 4;
+# Zelda Uncovered Secret Music
+# Notes: G2 F2# D2# A2 G# E2 G2# C3 
+#my $GOOD_NOTES       = [qw{ 1568 1480 1245 880 831 1319 1661 2093 }];
 my $GOOD_NOTES       = [ 100, 110, 120 ];
 my $BAD_NOTES        = [ 60 ];
 my $NOTE_DURATION_MS = 500;
 my $UNLOCK_DURATION_MS = 10_000;
+my $TEST               = 0;
 Getopt::Long::GetOptions(
     'ssl-cert=s' => \$SSL_CERT,
     'host=s'     => \$HOST,
     'username=s' => \$USERNAME,
     'password=s' => \$PASSWORD,
+    'test'       => \$TEST,
 );
 
 my $MECH = WWW::Mechanize->new(
+    autocheck => 0,
 );
 $MECH->credentials( $USERNAME, $PASSWORD );
 $MECH->ssl_opts(
@@ -102,6 +108,7 @@ sub play_notes
 sub do_success_action
 {
     say "Good RFID";
+    return 1 if $TEST;
     HiPi::Wiring::digitalWrite( $LOCK_PIN, WPI_HIGH );
 
     my $start_time = Time::HiRes::time();
@@ -120,6 +127,7 @@ sub do_success_action
 sub do_inactive_tag_action
 {
     say "Inactive RFID";
+    return 1 if $TEST;
     play_notes( @$BAD_NOTES );
     return 1;
 }
@@ -127,6 +135,7 @@ sub do_inactive_tag_action
 sub do_tag_not_found_action
 {
     say "Did not find RFID";
+    return 1 if $TEST;
     play_notes( @$BAD_NOTES );
     return 1;
 }
@@ -134,6 +143,7 @@ sub do_tag_not_found_action
 sub do_unknown_error_action
 {
     say "Unknown error";
+    return 1 if $TEST;
     play_notes( @$BAD_NOTES );
     return 1;
 }
