@@ -1,0 +1,40 @@
+<html>
+<head>
+<title>Test RFID Tag</title>
+<script type="text/javascript" src="/jquery-2.1.3.min.js"></script>
+<script type="text/javascript">
+
+function submit_rfid ()
+{
+    var tag  = $('#rfid').val();
+    var msg_div = $('#msg');
+    var url  = "/check_tag/" tag;
+
+    $.ajax( url, {
+        "type": "PUT",
+        "error": function (jqXHR, str, exception) {
+            msg_div.text( "Tag NOT OK: " + str );
+        },
+        "success": function (data, str, jqXHR) {
+            msg_div.text( "Tag OK" );
+        }
+    });
+
+    return 1;
+}
+
+</script>
+</head>
+<body>
+
+<h1>Test RFID Tag</h1>
+
+<div id="msg"></div>
+
+<form action="/">
+<p>RFID Tag #: <input type="text" id="rfid" name="rfid"></p>
+<p><input type="button" value="Add Tag" onClick="submit_rfid()"></p>
+</form>
+
+</body>
+</html>
