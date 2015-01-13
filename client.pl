@@ -91,7 +91,7 @@ sub check_tag
         undef;
 
     if(! defined $return ) {
-        say "Unknown error from server, checking fallback DB\n";
+        say "Unknown error from server, checking fallback DB";
         if( check_tag_sereal_fallback( $tag ) ) {
             $return = 1;
         }
@@ -104,29 +104,29 @@ sub check_tag_sereal_fallback
 {
     my ($tag) = @_;
     if(! -e $SEREAL_FALLBACK_DB ) {
-        say "Fallback DB ($SEREAL_FALLBACK_DB) does not exist\n";
+        say "Fallback DB ($SEREAL_FALLBACK_DB) does not exist";
         return 0;
     }
 
     open( my $fh, '<', $SEREAL_FALLBACK_DB ) or do {
-        say "Could not open fallback DB ($SEREAL_FALLBACK_DB): $!\n";
+        say "Could not open fallback DB ($SEREAL_FALLBACK_DB): $!";
         return 0;
     };
-    flock( $fh, LOCK_SH ) or warn "Could not get a shared lock on fallback DB"
-        . ", because [$!], checking it anyway . . .\n";
+    flock( $fh, LOCK_SH ) or say "Could not get a shared lock on fallback DB"
+        . ", because [$!], checking it anyway . . .";
     local $/ = undef;
     my $in = <$fh>;
     close $fh;
 
     my $decoder = get_sereal_decoder();
-    $decoder->decoder( $in, my $data );
+    $decoder->decode( $in, my $data );
 
     if( exists $data->{$tag} ) {
-        say "Found tag in fallback DB\n";
+        say "Found tag in fallback DB";
         return 1;
     }
     else {
-        say "Did not find tag in fallback DB\n";
+        say "Did not find tag in fallback DB";
         return 0;
     }
 }
@@ -212,7 +212,10 @@ sub do_unknown_error_action
         my $tag = get_next_tag();
         my $result = check_tag( $tag );
 
-        if( $result > 0 ) {
+        if(! defined $result ) {
+            do_unknown_error_action();
+        }
+        elsif( $result > 0 ) {
             do_success_action();
         }
         elsif( $result == -1 ) {

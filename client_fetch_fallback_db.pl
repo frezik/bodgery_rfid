@@ -25,7 +25,7 @@
 use v5.14;
 use warnings;
 use Getopt::Long ();
-use WWW::Mecahnize;
+use WWW::Mechanize;
 use Fcntl qw( :flock );
 
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
@@ -52,10 +52,15 @@ $MECH->ssl_opts(
 
 my $response = $MECH->get( $HOST . '/secure/dump_active_tags' );
 if( $response->is_success ) {
-    open( my $fh, '<', $SEREAL_FALLBACK_DB )
+    say "Got response, writing DB";
+
+    open( my $fh, '>', $SEREAL_FALLBACK_DB )
         or die "Could not open fallback DB ($SEREAL_FALLBACK_DB): $!\n";
     flock( $fh, LOCK_EX )
         or die "Could not get a shared lock on fallback DB: $!\n";
-    print $fh $response->content;
+    print $fh $response->decoded_content;
     close $fh;
+}
+else {
+    say "Fetch failed: [" . $response->code . '] ' . $response->message;
 }
