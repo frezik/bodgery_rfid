@@ -27,6 +27,7 @@ use Test::More;
 use Test::Mojo;
 use lib 't/lib';
 use TestDB;
+use Sereal::Decoder 'decode_sereal';
 
 use FindBin;
 require "$FindBin::Bin/../app.pl";
@@ -98,5 +99,15 @@ $t->get_ok( '/secure/search_entry_log?tag=1234', {Accept => 'text/plain'} )
         foo,1234,$date_reg,0,1 \n
         foo,1234,$date_reg,1,1 \n
     /mx );
+
+$t->get_ok( '/secure/dump_active_tags' )
+    ->header_is( 'Content-type' => 'application/sereal' );
+my $dump_tx = $t->tx;
+my $dump_response = $dump_tx->res;
+cmp_ok( $dump_response->code, '==', 200, 'Fetched active tags' );
+my $dump = decode_sereal( $dump_response->body );
+is_deeply( $dump, {
+    1234 => 1,
+});
 
 done_testing();

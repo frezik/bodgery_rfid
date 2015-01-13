@@ -27,10 +27,17 @@ use warnings;
 use Mojolicious::Lite;
 use DBI;
 use SQL::Abstract;
+use Sereal::Encoder qw{
+    SRL_SNAPPY
+    SRL_ZLIB
+};
 
 use constant DB_NAME     => 'bodgery_rfid';
 use constant DB_USERNAME => '';
 use constant DB_PASSWORD => '';
+
+use constant SEREAL_COMPRESS       => SRL_SNAPPY;
+use constant SEREAL_DEDUPE_STRINGS => 1;
 
 
 my $FIND_TAG_SQL = q{
@@ -213,6 +220,36 @@ get '/secure/search_entry_log' => sub {
     $c->render( text => $out );
 };
 
+get '/secure/dump_active_tags' => sub {
+    my ($c) = @_;
+
+    my $sa = SQL::Abstract->new;
+    my ($sql, @sql_params) = $sa->select(
+        'bodgery_rfid',
+        [qw{ rfid }],
+        {
+            active => 1,
+        },
+    );
+
+    my $dbh = get_dbh();
+    my $sth = $dbh->prepare_cached( $sql )
+        or die "Couldn't prepare statement: " . $dbh->errstr;
+    $sth->execute( @sql_params )
+        or die "Couldn't execute statement: " . $sth->errstr;
+
+    my %tags;
+    while( my ($rfid) = $sth->fetchrow_array ) {
+        $tags{$rfid} = 1;
+    }
+
+    $sth->finish;
+
+    my $sereal = get_sereal_encoder();
+    my $encoded = $sereal->encode( \%tags );
+    $c->render( data => $encoded, format => 'sereal' );
+};
+
 {
     my $dbh;
     sub get_dbh
@@ -247,5 +284,21 @@ sub log_entry_time
     return 1;
 }
 
+{
+    my $sereal;
+    sub get_sereal_encoder
+    {
+        return $sereal if defined $sereal;
+
+        $sereal = Sereal::Encoder->new({
+            compress       => SEREAL_COMPRESS,
+            dedupe_strings => SEREAL_DEDUPE_STRINGS,
+        });
+
+        return $sereal;
+    }
+}
+
 app->types->type( 'plain' => 'text/plain' );
+app->types->type( 'sereal' => 'application/sereal' );
 app->start;
