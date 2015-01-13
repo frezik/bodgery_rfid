@@ -28,6 +28,8 @@ use Getopt::Long ();
 use WWW::Mechanize;
 use Time::HiRes ();
 use HiPi::Wiring qw( :wiring );
+use Sereal::Decoder qw{};
+use Fcntl qw( :flock );
 
 
 my $SSL_CERT         = 'app.tyrion.crt';
@@ -45,6 +47,7 @@ my $BAD_NOTES        = [ 60 ];
 my $NOTE_DURATION_MS = 500;
 my $UNLOCK_DURATION_MS = 10_000;
 my $TEST               = 0;
+my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
 Getopt::Long::GetOptions(
     'ssl-cert=s' => \$SSL_CERT,
     'host=s'     => \$HOST,
@@ -87,7 +90,45 @@ sub check_tag
         $code == 404 ? -2 :
         undef;
 
+    if(! defined $return ) {
+        say "Unknown error from server, checking fallback DB\n";
+        if( check_tag_sereal_fallback( $tag ) ) {
+            $return = 1;
+        }
+    }
+
     return $return;
+}
+
+sub check_tag_sereal_fallback
+{
+    my ($tag) = @_;
+    if(! -e $SEREAL_FALLBACK_DB ) {
+        say "Fallback DB ($SEREAL_FALLBACK_DB) does not exist\n";
+        return 0;
+    }
+
+    open( my $fh, '<', $SEREAL_FALLBACK_DB ) or do {
+        say "Could not open fallback DB ($SEREAL_FALLBACK_DB): $!\n";
+        return 0;
+    };
+    flock( $fh, LOCK_SH ) or warn "Could not get a shared lock on fallback DB"
+        . ", because [$!], checking it anyway . . .\n";
+    local $/ = undef;
+    my $in = <$fh>;
+    close $fh;
+
+    my $decoder = get_sereal_decoder();
+    $decoder->decoder( $in, my $data );
+
+    if( exists $data->{$tag} ) {
+        say "Found tag in fallback DB\n";
+        return 1;
+    }
+    else {
+        say "Did not find tag in fallback DB\n";
+        return 0;
+    }
 }
 
 
@@ -148,8 +189,23 @@ sub do_unknown_error_action
     return 1;
 }
 
+{
+    my $sereal;
+    sub get_sereal_decoder
+    {
+        return $sereal if defined $sereal;
+
+        $sereal = Sereal::Decoder->new({
+        });
+
+        return $sereal;
+    }
+}
+
 
 {
+    get_sereal_decoder(); # Pre-fetch the Sereal::Decode object
+
     say "Ready for input";
 
     while(1) {
