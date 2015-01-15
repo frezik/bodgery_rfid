@@ -196,9 +196,11 @@ get '/secure/search_entry_log' => sub {
     my $sql = $FIND_ENTRY_LOG_SQL;
     my @sql_params = ();
     if( defined $tag ) {
-        $sql .= 'WHERE entry_log.rfid = ?';
+        $sql .= ' WHERE entry_log.rfid = ?';
         push @sql_params, $tag;
     }
+
+    $sql .= ' ORDER BY entry_time DESC';
 
     my $dbh = get_dbh();
     my $sth = $dbh->prepare_cached( $sql )
