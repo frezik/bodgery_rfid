@@ -84,6 +84,7 @@ function deactivate_tag( rfid )
         },
         "success": function (data, str, jqXHR) {
             msg_div.text( "" );
+            get_list( 0, 0 );
         }
     });
 }
@@ -100,6 +101,7 @@ function reactivate_tag( rfid )
         },
         "success": function (data, str, jqXHR) {
             msg_div.text( "" );
+            get_list( 0, 0 );
         }
     });
 }
