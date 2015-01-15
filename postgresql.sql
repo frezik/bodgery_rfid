@@ -15,4 +15,4 @@ CREATE TABLE entry_log (
     is_active_tag   BOOLEAN NOT NULL,
     is_found_tag    BOOLEAN NOT NULL
 );
-CREATE INDEX ON entry_log (entry_time);
+CREATE INDEX ON entry_log (entry_time DESC);

@@ -200,7 +200,7 @@ get '/secure/search_entry_log' => sub {
         push @sql_params, $tag;
     }
 
-    $sql .= ' ORDER BY entry_time';
+    $sql .= ' ORDER BY entry_time DESC';
 
     my $dbh = get_dbh();
     my $sth = $dbh->prepare_cached( $sql )
