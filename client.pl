@@ -1,5 +1,5 @@
 #!perl
-# Copyright (c) 2014  Timm Murray
+# Copyright (c) 2015  Timm Murray
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without 
@@ -44,7 +44,7 @@ my $LOCK_PIN         = 4;
 #my $GOOD_NOTES       = [qw{ 1568 1480 1245 880 831 1319 1661 2093 }];
 my $GOOD_NOTES       = [ 100, 110, 120 ];
 my $BAD_NOTES        = [ 60 ];
-my $NOTE_DURATION_MS = 500;
+my $NOTE_DURATION      = 0.2;
 my $UNLOCK_DURATION_MS = 10_000;
 my $TEST               = 0;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
@@ -67,6 +67,8 @@ $MECH->ssl_opts(
 HiPi::Wiring::wiringPiSetupGpio();
 HiPi::Wiring::pinMode( $LOCK_PIN, WPI_OUTPUT );
 HiPi::Wiring::pinMode( $PIEZO_PIN, WPI_PWM_OUTPUT );
+HiPi::Wiring::digitalWrite( $PIN, WPI_LOW );
+HiPi::Wiring::softToneCreate( $PIN );
 HiPi::Wiring::pwmSetMode( WPI_PWM_MODE_MS );
 
 
@@ -135,15 +137,16 @@ sub check_tag_sereal_fallback
 sub play_notes
 {
     my (@notes) = @_;
+
     foreach my $freq (@notes) {
-        # Taken from http://www.raspberrypi.org/forums/viewtopic.php?f=44&t=20559
-        my $period = sprintf '%.0f', 600000/440/2**(($freq-69)/12);
-        HiPi::Wiring::pwmSetRange( $period );
-        HiPi::Wiring::pwmWrite( $PIEZO_PIN, $period / 2 );
-        HiPi::Wiring::delay( $NOTE_DURATION_MS );
+        HiPi::Wiring::softToneWrite( $PIN, $_ );
+        Time::HiRes::sleep( $NOTE_DURATION );
     }
 
-    HiPi::Wiring::pwmWrite( $PIEZO_PIN, 0 );
+    HiPi::Wiring::softToneWrite( $PIN, 0 );
+    HiPi::Wiring::digitalWrite( $PIN, WPI_LOW );
+
+    return 1;
 }
 
 sub do_success_action
