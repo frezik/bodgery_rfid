@@ -41,8 +41,7 @@ my $PIEZO_PIN        = 18;
 my $LOCK_PIN         = 4;
 # Zelda Uncovered Secret Music
 # Notes: G2 F2# D2# A2 G# E2 G2# C3 
-#my $GOOD_NOTES       = [qw{ 1568 1480 1245 880 831 1319 1661 2093 }];
-my $GOOD_NOTES       = [ 100, 110, 120 ];
+my $GOOD_NOTES       = [qw{ 1568 1480 1245 880 831 1319 1661 2093 }];
 my $BAD_NOTES        = [ 60 ];
 my $NOTE_DURATION      = 0.2;
 my $UNLOCK_DURATION_MS = 10_000;
