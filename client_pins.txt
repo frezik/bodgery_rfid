@@ -1,0 +1,21 @@
+Pins Used on the Rpi Model B+.  Numbered by physical header, not GPIO number.
+
+Pin     Function
+---     --------
+1       LCD Backlight Power
+3       LCD Power
+6       LCD Ground
+11      Open/closed shop switch
+12      Piezo
+14      Piezo Ground
+17      Open/closed shop switch power
+16      LCD DC
+18      LCD RST
+19      LCD MOSI
+23      LCD SCLK
+24      LCD SCE
+32      LED open signal
+30      LED open signal ground
+34      Relay ground
+36      Unlock Relay
+38      Lock Relay

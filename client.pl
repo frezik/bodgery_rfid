@@ -30,6 +30,8 @@ use Time::HiRes ();
 use HiPi::Wiring qw( :wiring );
 use Sereal::Decoder qw{};
 use Fcntl qw( :flock );
+use AnyEvent;
+use AnyEvent::HTTP::LWP::UserAgent;
 
 
 my $SSL_CERT         = 'app.tyrion.crt';
@@ -66,11 +68,35 @@ $MECH->ssl_opts(
 HiPi::Wiring::wiringPiSetupGpio();
 HiPi::Wiring::pinMode( $LOCK_PIN, WPI_OUTPUT );
 HiPi::Wiring::pinMode( $PIEZO_PIN, WPI_PWM_OUTPUT );
-HiPi::Wiring::digitalWrite( $PIN, WPI_LOW );
-HiPi::Wiring::softToneCreate( $PIN );
+HiPi::Wiring::digitalWrite( $PIEZO_PIN, WPI_LOW );
+HiPi::Wiring::softToneCreate( $PIEZO_PIN );
 HiPi::Wiring::pwmSetMode( WPI_PWM_MODE_MS );
 
 
+
+sub tag_input_event
+{
+    my $tag = get_next_tag();
+    my $result = check_tag( $tag );
+
+    if(! defined $result ) {
+        do_unknown_error_action();
+    }
+    elsif( $result > 0 ) {
+        do_success_action();
+    }
+    elsif( $result == -1 ) {
+        do_inactive_tag_action();
+    }
+    elsif( $result == -2 ) {
+        do_tag_not_found_action();
+    }
+    else {
+        do_unknown_error_action();
+    }
+
+    return 1;
+}
 
 sub get_next_tag
 {
@@ -83,8 +109,13 @@ sub check_tag
 {
     my ($tag) = @_;
     
-    my $result = $MECH->get( $HOST . '/check_tag/' . $tag );
-    my $code   = $result->code;
+    my $start_time = [Time::HiRes::gettimeofday];
+    my $result     = $MECH->get( $HOST . '/check_tag/' . $tag );
+    my $end_time   = [Time::HiRes::gettimeofday];
+    my $duration   = Time::HiRes::tv_interval( $start_time, $end_time );
+    my $code       = $result->code;
+
+    say "Response time: " . sprintf( '%.0f ms', $duration * 1000);
 
     my $return = $code == 200 ? 1 :
         $code == 403 ? -1 :
@@ -138,12 +169,12 @@ sub play_notes
     my (@notes) = @_;
 
     foreach my $freq (@notes) {
-        HiPi::Wiring::softToneWrite( $PIN, $_ );
+        HiPi::Wiring::softToneWrite( $PIEZO_PIN, $_ );
         Time::HiRes::sleep( $NOTE_DURATION );
     }
 
-    HiPi::Wiring::softToneWrite( $PIN, 0 );
-    HiPi::Wiring::digitalWrite( $PIN, WPI_LOW );
+    HiPi::Wiring::softToneWrite( $PIEZO_PIN, 0 );
+    HiPi::Wiring::digitalWrite( $PIEZO_PIN, WPI_LOW );
 
     return 1;
 }
@@ -208,26 +239,13 @@ sub do_unknown_error_action
 {
     get_sereal_decoder(); # Pre-fetch the Sereal::Decode object
 
+    my $cv = AnyEvent->condvar;
+    my $stdin_watcher = AnyEvent->io(
+        fh   => \*STDIN,
+        poll => 'r',
+        cb   => \&tag_input_event,
+    );
+
     say "Ready for input";
-
-    while(1) {
-        my $tag = get_next_tag();
-        my $result = check_tag( $tag );
-
-        if(! defined $result ) {
-            do_unknown_error_action();
-        }
-        elsif( $result > 0 ) {
-            do_success_action();
-        }
-        elsif( $result == -1 ) {
-            do_inactive_tag_action();
-        }
-        elsif( $result == -2 ) {
-            do_tag_not_found_action();
-        }
-        else {
-            do_unknown_error_action();
-        }
-    }
+    $cv->recv;
 }
