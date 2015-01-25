@@ -25,7 +25,6 @@
 use v5.14;
 use warnings;
 use Getopt::Long ();
-use WWW::Mechanize;
 use Time::HiRes ();
 use HiPi::Wiring qw( :wiring );
 use Sereal::Decoder qw{};
@@ -35,8 +34,8 @@ use AnyEvent::HTTP::LWP::UserAgent;
 
 
 my $SSL_CERT         = 'app.tyrion.crt';
-my $HOST             = 'https://app.tyrion.thebodgery.org';
-my $AUTH_REALM       = 'Authentication';
+my $DOMAIN           = 'app.tyrion.thebodgery.org';
+my $AUTH_REALM       = 'Required';
 my $USERNAME         = '';
 my $PASSWORD         = '';
 my $PIEZO_PIN        = 18;
@@ -51,17 +50,18 @@ my $TEST               = 0;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
 Getopt::Long::GetOptions(
     'ssl-cert=s' => \$SSL_CERT,
-    'host=s'     => \$HOST,
+    'host=s'     => \$DOMAIN,
     'username=s' => \$USERNAME,
     'password=s' => \$PASSWORD,
     'test'       => \$TEST,
 );
 
-my $MECH = WWW::Mechanize->new(
-    autocheck => 0,
-);
-$MECH->credentials( $USERNAME, $PASSWORD );
-$MECH->ssl_opts(
+my $HOST = 'https://' . $DOMAIN;
+
+
+my $UA = AnyEvent::HTTP::LWP::UserAgent->new;
+$UA->credentials( $DOMAIN . ':443', $AUTH_REALM, $USERNAME, $PASSWORD );
+$UA->ssl_opts(
     SSL_ca_file => $SSL_CERT,
 );
 
@@ -77,23 +77,14 @@ HiPi::Wiring::pwmSetMode( WPI_PWM_MODE_MS );
 sub tag_input_event
 {
     my $tag = get_next_tag();
-    my $result = check_tag( $tag );
-
-    if(! defined $result ) {
-        do_unknown_error_action();
-    }
-    elsif( $result > 0 ) {
-        do_success_action();
-    }
-    elsif( $result == -1 ) {
-        do_inactive_tag_action();
-    }
-    elsif( $result == -2 ) {
-        do_tag_not_found_action();
-    }
-    else {
-        do_unknown_error_action();
-    }
+    my $result = check_tag({
+        tag              => $tag,
+        on_success       => \&do_success_action,
+        on_inactive_tag  => \&do_inactive_tag_action,
+        on_tag_not_found => \&do_tag_not_found_action,
+        on_unknown_error => \&do_unknown_error_action,
+        fallback_check   => \&check_tag_sereal_fallback,
+    });
 
     return 1;
 }
@@ -107,29 +98,46 @@ sub get_next_tag
 
 sub check_tag
 {
-    my ($tag) = @_;
-    
+    my (%args) = %{ +shift };
+    my ($tag, $on_success, $on_inactive_tag, $on_tag_not_found,
+        $on_unknown_error, $fallback_check) = @args{qw[
+            tag on_success on_inactive_tag on_tag_not_found on_unknown_error
+            fallback_check ]};
+
     my $start_time = [Time::HiRes::gettimeofday];
-    my $result     = $MECH->get( $HOST . '/check_tag/' . $tag );
-    my $end_time   = [Time::HiRes::gettimeofday];
-    my $duration   = Time::HiRes::tv_interval( $start_time, $end_time );
-    my $code       = $result->code;
+    $UA->get_async( $HOST . '/check_tag/' . $tag )->cb(sub {
+        my $end_time   = [Time::HiRes::gettimeofday];
+        my $duration   = Time::HiRes::tv_interval( $start_time, $end_time );
 
-    say "Response time: " . sprintf( '%.0f ms', $duration * 1000);
+        my $r    = shift->recv;
+        my $code = $r->code;
 
-    my $return = $code == 200 ? 1 :
-        $code == 403 ? -1 :
-        $code == 404 ? -2 :
-        undef;
+        say "Response time: " . sprintf( '%.0f ms', $duration * 1000);
 
-    if(! defined $return ) {
-        say "Unknown error from server, checking fallback DB";
-        if( check_tag_sereal_fallback( $tag ) ) {
-            $return = 1;
+        if(! defined $code ) {
+            $on_unknown_error->();
         }
-    }
+        elsif( $code == 200 ) {
+            $on_success->();
+        }
+        elsif( $code == 403 ) {
+            $on_inactive_tag->();
+        }
+        elsif( $code == 404 ) {
+            $on_tag_not_found->();
+        }
+        else {
+            say "Unknown error from server, checking fallback DB";
+            if( $fallback_check->( $tag ) ) {
+                $on_success->();
+            }
+            else {
+                $on_unknown_error->();
+            }
+        }
+    });
 
-    return $return;
+    return 1;
 }
 
 sub check_tag_sereal_fallback
