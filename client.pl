@@ -49,11 +49,12 @@ my $UNLOCK_DURATION_MS = 10_000;
 my $TEST               = 0;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
 Getopt::Long::GetOptions(
-    'ssl-cert=s' => \$SSL_CERT,
-    'host=s'     => \$DOMAIN,
-    'username=s' => \$USERNAME,
-    'password=s' => \$PASSWORD,
-    'test'       => \$TEST,
+    'ssl-cert=s'    => \$SSL_CERT,
+    'host=s'        => \$DOMAIN,
+    'username=s'    => \$USERNAME,
+    'password=s'    => \$PASSWORD,
+    'test'          => \$TEST,
+    'fallback-db=s' => \$SEREAL_FALLBACK_DB,
 );
 
 my $HOST = 'https://' . $DOMAIN;
@@ -154,6 +155,8 @@ sub check_tag_sereal_fallback
     };
     flock( $fh, LOCK_SH ) or say "Could not get a shared lock on fallback DB"
         . ", because [$!], checking it anyway . . .";
+
+    # TODO Slurp with AnyEvent
     local $/ = undef;
     my $in = <$fh>;
     close $fh;
