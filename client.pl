@@ -36,7 +36,7 @@ use Device::PCD8544;
 use Device::WebIO::RaspberryPi;
 use Imager;
 
-use constant DEBUG => 1;
+use constant DEBUG => 0;
 
 use constant IMG_WIDTH            => 800;
 use constant IMG_HEIGHT           => 600;
@@ -56,7 +56,8 @@ my $AUTH_REALM       = 'Required';
 my $USERNAME         = '';
 my $PASSWORD         = '';
 my $PIEZO_PIN        = 18;
-my $LOCK_PIN         = 4;
+my $LOCK_PIN         = 22;
+my $UNLOCK_PIN       = 25;
 my $OPEN_SWITCH      = 17;
 # Zelda Uncovered Secret Music
 # Notes: G2 F2# D2# A2 G# E2 G2# C3 
@@ -64,19 +65,17 @@ my $GOOD_NOTES       = [qw{ 1568 1480 1245 880 831 1319 1661 2093 }];
 my $BAD_NOTES        = [ 60 ];
 my $NOTE_DURATION      = 0.2;
 my $UNLOCK_DURATION_MS = 10_000;
-my $TEST               = 0;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
 my $TMP_DIR            = '/var/tmp-ramdisk';
 my $LCD_POWER_PIN = 3;
-my $LCD_RST_PIN   = 18;
-my $LCD_DC_PIN    = 16;
+my $LCD_RST_PIN   = 24;
+my $LCD_DC_PIN    = 23;
 my $TAKE_PICTURE_INTERVAL = 5;
 Getopt::Long::GetOptions(
     'ssl-cert=s'    => \$SSL_CERT,
     'host=s'        => \$DOMAIN,
     'username=s'    => \$USERNAME,
     'password=s'    => \$PASSWORD,
-    'test'          => \$TEST,
     'fallback-db=s' => \$SEREAL_FALLBACK_DB,
     'tmp-dir=s'     => \$TMP_DIR,
 );
@@ -96,14 +95,6 @@ $UA->credentials( $DOMAIN . ':443', $AUTH_REALM, $USERNAME, $PASSWORD );
 $UA->ssl_opts(
     SSL_ca_file => $SSL_CERT,
 );
-
-HiPi::Wiring::wiringPiSetupGpio();
-HiPi::Wiring::pinMode( $LOCK_PIN, WPI_OUTPUT );
-HiPi::Wiring::pinMode( $PIEZO_PIN, WPI_PWM_OUTPUT );
-HiPi::Wiring::digitalWrite( $PIEZO_PIN, WPI_LOW );
-HiPi::Wiring::softToneCreate( $PIEZO_PIN );
-HiPi::Wiring::pwmSetMode( WPI_PWM_MODE_MS );
-
 
 
 sub get_tag_input_event
@@ -213,7 +204,7 @@ sub play_notes
     my (@notes) = @_;
 
     foreach my $freq (@notes) {
-        HiPi::Wiring::softToneWrite( $PIEZO_PIN, $_ );
+        HiPi::Wiring::softToneWrite( $PIEZO_PIN, $freq );
         Time::HiRes::sleep( $NOTE_DURATION );
     }
 
@@ -227,8 +218,7 @@ sub do_success_action
 {
     my ($dev) = @_;
     say "Good RFID";
-    return 1 if $TEST;
-    $dev->output_pin( $LOCK_PIN, 1 );
+    unlock_door( $dev );
 
     my $start_time = Time::HiRes::time();
     my $expect_end_time = $start_time + ($UNLOCK_DURATION_MS / 1000);
@@ -239,14 +229,13 @@ sub do_success_action
         $now = Time::HiRes::time();
     }
 
-    HiPi::Wiring::digitalWrite( $LOCK_PIN, WPI_LOW );
+    lock_door( $dev );
     return 1;
 }
 
 sub do_inactive_tag_action
 {
     say "Inactive RFID";
-    return 1 if $TEST;
     play_notes( @$BAD_NOTES );
     return 1;
 }
@@ -254,7 +243,6 @@ sub do_inactive_tag_action
 sub do_tag_not_found_action
 {
     say "Did not find RFID";
-    return 1 if $TEST;
     play_notes( @$BAD_NOTES );
     return 1;
 }
@@ -262,7 +250,6 @@ sub do_tag_not_found_action
 sub do_unknown_error_action
 {
     say "Unknown error";
-    return 1 if $TEST;
     play_notes( @$BAD_NOTES );
     return 1;
 }
@@ -386,12 +373,39 @@ sub get_open_status_callbacks
     return ($input_callback, $lcd_callback, $picture_callback);
 }
 
+sub unlock_door
+{
+    my ($dev) = @_;
+    $dev->output_pin( $LOCK_PIN, 0 );
+    $dev->output_pin( $UNLOCK_PIN, 1 );
+    return 1;
+}
+
+sub lock_door
+{
+    my ($dev) = @_;
+    $dev->output_pin( $LOCK_PIN, 1 );
+    $dev->output_pin( $UNLOCK_PIN, 0 );
+    return 1;
+}
+
 
 {
     get_sereal_decoder(); # Pre-fetch the Sereal::Decode object
 
     my $rpi = Device::WebIO::RaspberryPi->new;
     $rpi->set_as_input( $OPEN_SWITCH );
+    $rpi->set_as_output( $LOCK_PIN );
+    $rpi->set_as_output( $UNLOCK_PIN );
+    lock_door( $rpi );
+
+    # Since Device::WebIO doesn't support sound creation yet, 
+    # set piezo ourselves
+    HiPi::Wiring::pinMode( $PIEZO_PIN, WPI_PWM_OUTPUT );
+    HiPi::Wiring::digitalWrite( $PIEZO_PIN, WPI_LOW );
+    HiPi::Wiring::softToneCreate( $PIEZO_PIN );
+    HiPi::Wiring::pwmSetMode( WPI_PWM_MODE_MS );
+
 
     my $cv = AnyEvent->condvar;
     my $stdin_watcher = AnyEvent->io(
