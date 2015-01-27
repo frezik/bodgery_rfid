@@ -1,12 +1,12 @@
 TODO
 ====
 * Async access of fallback DB
-* LCD Display
-* Check open/closed switch
-* Take picture when open
 * Button for unlock (hold down? 2hour limit or until closed switch set?)
 
 
 Ready for Testing
 =================
 * Piezo output on success
+* LCD Display
+* Check open/closed switch
+* Take picture when open
