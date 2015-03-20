@@ -36,7 +36,7 @@ use Device::PCD8544;
 use Device::WebIO::RaspberryPi;
 use Imager;
 
-use constant DEBUG => 0;
+use constant DEBUG => 1;
 
 use constant IMG_WIDTH            => 800;
 use constant IMG_HEIGHT           => 600;
@@ -67,6 +67,7 @@ my $NOTE_DURATION      = 0.2;
 my $UNLOCK_DURATION_MS = 10_000;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
 my $TMP_DIR            = '/var/tmp-ramdisk';
+my $LED_PIN       = 4;
 my $LCD_POWER_PIN = 3;
 my $LCD_RST_PIN   = 24;
 my $LCD_DC_PIN    = 23;
@@ -129,6 +130,8 @@ sub check_tag
             tag dev on_success on_inactive_tag on_tag_not_found on_unknown_error
             fallback_check ]};
 
+# TODO remove after testing
+return $on_success->( $dev );
     my $start_time = [Time::HiRes::gettimeofday];
     $UA->get_async( $HOST . '/check_tag/' . $tag )->cb(sub {
         my $end_time   = [Time::HiRes::gettimeofday];
@@ -287,6 +290,7 @@ sub send_pic
 sub get_lcd
 {
     my ($rpi) = @_;
+    say "Setting up LCD . . . " if DEBUG;
     my $lcd = Device::PCD8544->new({
         dev      => 0,
         speed    => Device::PCD8544->SPEED_4MHZ,
@@ -301,6 +305,7 @@ sub get_lcd
     $lcd->set_image( \@PIC_CLOSED );
     $lcd->update;
 
+    say "Done setting LCD" if DEBUG;
     return $lcd;
 }
 
@@ -376,6 +381,7 @@ sub get_open_status_callbacks
 sub unlock_door
 {
     my ($dev) = @_;
+    $dev->output_pin( $LED_PIN, 1 );
     $dev->output_pin( $LOCK_PIN, 0 );
     $dev->output_pin( $UNLOCK_PIN, 1 );
     return 1;
@@ -384,6 +390,7 @@ sub unlock_door
 sub lock_door
 {
     my ($dev) = @_;
+    $dev->output_pin( $LED_PIN, 0 );
     $dev->output_pin( $LOCK_PIN, 1 );
     $dev->output_pin( $UNLOCK_PIN, 0 );
     return 1;
@@ -395,8 +402,11 @@ sub lock_door
 
     my $rpi = Device::WebIO::RaspberryPi->new;
     $rpi->set_as_input( $OPEN_SWITCH );
+    $rpi->set_as_output( $LCD_POWER_PIN );
+    $rpi->set_as_output( $LED_PIN );
     $rpi->set_as_output( $LOCK_PIN );
     $rpi->set_as_output( $UNLOCK_PIN );
+    $rpi->output_pin( $LCD_POWER_PIN, 1 );
     lock_door( $rpi );
 
     # Since Device::WebIO doesn't support sound creation yet, 

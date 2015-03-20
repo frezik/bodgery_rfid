@@ -5,7 +5,8 @@ Pin     Function
 1       LCD Backlight Power
 5       LCD Power
 6       LCD Ground
-8       LED open signal
+7       LED open signal
+9       LED Ground
 11      Open/closed shop switch
 12      Piezo
 14      Piezo Ground
@@ -14,7 +15,6 @@ Pin     Function
 17      Open/closed shop switch power
 18      LCD RST
 19      LCD MOSI
-20      LED open signal ground
 22      Unlock Relay
 23      LCD SCLK
 24      LCD SCE
