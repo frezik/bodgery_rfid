@@ -3,7 +3,7 @@ Pins Used on the Rpi Model B+.  Numbered by physical header, not GPIO number.
 Pin     Function
 ---     --------
 1       LCD Backlight Power
-5       LCD Power
+2       LCD Power
 6       LCD Ground
 7       LED open signal
 9       LED Ground
