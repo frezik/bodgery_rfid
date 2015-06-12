@@ -2,20 +2,20 @@ Pins Used on the Rpi Model B+.  Numbered by physical header, not GPIO number.
 
 Pin     Function
 ---     --------
-1       LCD Backlight Power
-2       LCD Power
-6       LCD Ground
-7       LED open signal
-9       LED Ground
-11      Open/closed shop switch
-12      Piezo
-14      Piezo Ground
-15      Lock Relay
-16      LCD DC
-17      Open/closed shop switch power
-18      LCD RST
-19      LCD MOSI
-22      Unlock Relay
-23      LCD SCLK
-24      LCD SCE
-25      Relay ground
+1       LCD Backlight Power (3.3V)
+2       LCD Power (5V)
+6       LCD Ground (GND)
+7       LED open signal (GPIO4)
+9       LED Ground (GND)
+11      Open/closed shop switch (GPIO17)
+12      Piezo (GPIO17)
+14      Piezo Ground (GND)
+15      Lock Relay (GPIO22)
+16      LCD DC (GPIO23)
+17      Open/closed shop switch power (3V3)
+18      LCD RST (GPIO24)
+19      LCD MOSI (SPI MOSI)
+22      Unlock Relay (GPIO25)
+23      LCD SCLK (SPI SCLK)
+24      LCD SCE (SPI CE0)
+25      Relay ground (GND)
