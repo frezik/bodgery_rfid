@@ -38,6 +38,7 @@ use Imager;
 
 use constant DEBUG => 1;
 
+use constant DO_USE_LCD           => 0;
 use constant IMG_WIDTH            => 800;
 use constant IMG_HEIGHT           => 600;
 use constant IMG_QUALITY          => 100;
@@ -290,6 +291,7 @@ sub send_pic
 sub get_lcd
 {
     my ($rpi) = @_;
+    return undef unless DO_USE_LCD;
     say "Setting up LCD . . . " if DEBUG;
     my $lcd = Device::PCD8544->new({
         dev      => 0,
@@ -322,6 +324,7 @@ sub get_open_status_callbacks
 
     my $lcd = get_lcd( $rpi );
     my $lcd_callback = sub {
+        return 0 unless DO_USE_LCD;
         my $pic = $is_open ? \@PIC_OPEN : \@PIC_CLOSED;
         say "Setting LCD pic (is open: $is_open)" if DEBUG;
         $lcd->set_image( $pic );
@@ -407,6 +410,12 @@ sub lock_door
     $rpi->set_as_output( $LOCK_PIN );
     $rpi->set_as_output( $UNLOCK_PIN );
     $rpi->output_pin( $LCD_POWER_PIN, 1 );
+
+    # Set pullup resisters for lock/unlock pins.  Have to use 
+    # Wiring Pi pin numbering for this
+    HiPi::Wiring::pullUpDnControl( $_, WPI_PUD_DOWN )
+        for 3, 6;
+
     lock_door( $rpi );
 
     # Since Device::WebIO doesn't support sound creation yet, 
