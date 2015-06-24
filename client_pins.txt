@@ -16,7 +16,7 @@ Pin     Function
 17      Open/closed shop switch power (3V3)
 18      LCD RST (GPIO24)
 19      LCD MOSI (SPI MOSI)
-22      Unlock Relay (GPIO25)
+22      Unlock Switch (GPIO25)
 23      LCD SCLK (SPI SCLK)
 24      LCD SCE (SPI CE0)
 25      Relay ground (GND)
