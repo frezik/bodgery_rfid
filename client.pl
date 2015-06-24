@@ -131,8 +131,6 @@ sub check_tag
             tag dev on_success on_inactive_tag on_tag_not_found on_unknown_error
             fallback_check ]};
 
-# TODO remove after testing
-return $on_success->( $dev );
     my $start_time = [Time::HiRes::gettimeofday];
     $UA->get_async( $HOST . '/check_tag/' . $tag )->cb(sub {
         my $end_time   = [Time::HiRes::gettimeofday];
