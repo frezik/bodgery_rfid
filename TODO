@@ -3,3 +3,14 @@ TODO
 * Async access of fallback DB
 * Button for unlock (hold down? 2hour limit or until closed switch set?)
 * Notification LED for open status
+
+Move in day
+===========
+* Mount relay to something
+* Route wires
+* Mount box outside
+* Tape/secure loose wiring
+* Update varys with latest changes
+* Both varys and tyrion setup IPs statically
+* Ensure backup of tyrion database runs on varys
+* Ensure backup of tyrion database to website

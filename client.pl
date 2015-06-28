@@ -383,8 +383,8 @@ sub unlock_door
 {
     my ($dev) = @_;
     $dev->output_pin( $LED_PIN, 1 );
-    $dev->output_pin( $LOCK_PIN, 0 );
-    $dev->output_pin( $UNLOCK_PIN, 1 );
+    $dev->output_pin( $LOCK_PIN, 1 );
+    $dev->output_pin( $UNLOCK_PIN, 0 );
     return 1;
 }
 
@@ -392,8 +392,8 @@ sub lock_door
 {
     my ($dev) = @_;
     $dev->output_pin( $LED_PIN, 0 );
-    $dev->output_pin( $LOCK_PIN, 1 );
-    $dev->output_pin( $UNLOCK_PIN, 0 );
+    $dev->output_pin( $LOCK_PIN, 0 );
+    $dev->output_pin( $UNLOCK_PIN, 1 );
     return 1;
 }
 
