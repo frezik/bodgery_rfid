@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/perl
 # Copyright (c) 2015  Timm Murray
 # All rights reserved.
 # 
