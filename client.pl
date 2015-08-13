@@ -49,6 +49,7 @@ use constant PRIVATE_KEY_FILE     => 'upload_key.rsa';
 use constant SERVER_USERNAME      => '';
 use constant SERVER_HOST          => ''; # Fill in hostname or IP
 use constant SERVER_UPLOAD_PATH   => ''; # Fill in upload path on server
+use constant DOOR_OPEN_SEC        => 10;
 
 
 my $SSL_CERT         = 'app.tyrion.crt';
@@ -314,8 +315,23 @@ sub get_open_status_callbacks
     my ($rpi) = @_;
 
     my $is_open = 0;
+    my $prev_is_open = 0;
     my $input_callback = sub {
         $is_open = $rpi->input_pin( $OPEN_SWITCH );
+
+        if( $is_open && !$prev_is_open ) {
+            unlock_door( $rpi );
+	    my $input_timer; $input_timer = AnyEvent->timer(
+		after    => DOOR_OPEN_SEC,
+		cb       => sub { 
+                    lock_door( $rpi );
+                    $input_timer;
+                },
+	    );
+        }
+
+        $prev_is_open = $is_open;
+
         say "Open setting: $is_open" if DEBUG;
         return 1;
     };
@@ -330,7 +346,6 @@ sub get_open_status_callbacks
         return 1;
     };
 
-    my $prev_is_open = 0;
     my $picture_callback = sub {
         say "Checking if we should send an image . . . " if DEBUG;
 
