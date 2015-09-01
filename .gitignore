@@ -3,3 +3,4 @@ rfid_fallback.db
 *.ods
 *.crt
 .passwd
+shop_pic_conf.sh
