@@ -39,6 +39,8 @@ use constant DB_PASSWORD => '';
 use constant SEREAL_COMPRESS       => SRL_SNAPPY;
 use constant SEREAL_DEDUPE_STRINGS => 1;
 
+use constant SHOP_OPEN_KEY => 'shop_open';
+
 
 my $FIND_TAG_SQL = q{
     SELECT id, active FROM bodgery_rfid WHERE rfid = ?
@@ -252,6 +254,22 @@ get '/secure/dump_active_tags' => sub {
     $c->render( data => $encoded, format => 'sereal' );
 };
 
+get '/shop_open' => sub {
+    my ($c) = @_;
+    my $cache = get_mojo_cache();
+    my $out = $cache->get( SHOP_OPEN_KEY );
+    $out = 0 unless defined $out;
+    $c->render( text => $out );
+};
+
+post '/shop_open/:is_open' => sub {
+    my ($c) = @_;
+    my $is_open = $c->param( 'is_open' );
+    my $cache = get_mojo_cache();
+    $cache->set( SHOP_OPEN_KEY, $is_open );
+    $c->render( text => '' );
+};
+
 {
     my $dbh;
     sub get_dbh
@@ -300,6 +318,17 @@ sub log_entry_time
         return $sereal;
     }
 }
+
+{
+    my $cache;
+    sub get_mojo_cache
+    {
+        return $cache if defined $cache;
+        $cache = Mojo::Cache->new( max_keys => 100 );
+        return $cache;
+    }
+}
+
 
 app->types->type( 'plain' => 'text/plain' );
 app->types->type( 'sereal' => 'application/sereal' );
