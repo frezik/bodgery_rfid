@@ -51,8 +51,7 @@ use constant SERVER_UPLOAD_PATH   => ''; # Fill in upload path on server
 # How long to hold the door open for a normal scan
 use constant DOOR_OPEN_SEC        => 15;
 # How long to hold the door for general open shop
-#use constant DOOR_HOLD_OPEN_SEC   => 60 * 60 * 1;
-use constant DOOR_HOLD_OPEN_SEC   => 30;
+use constant DOOR_HOLD_OPEN_SEC   => 60 * 60 * 1;
 
 use constant {
     DONT_HOLD_DOOR => 0,
