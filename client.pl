@@ -51,13 +51,14 @@ use constant SERVER_UPLOAD_PATH   => ''; # Fill in upload path on server
 # How long to hold the door open for a normal scan
 use constant DOOR_OPEN_SEC        => 15;
 # How long to hold the door for general open shop
-use constant DOOR_HOLD_OPEN_SEC   => 60 * 60 * 1;
+#use constant DOOR_HOLD_OPEN_SEC   => 60 * 60 * 1;
+use constant DOOR_HOLD_OPEN_SEC   => 30;
 
 use constant {
     DONT_HOLD_DOOR => 0,
     MAYBE_HOLD_DOOR => 1,
     DO_HOLD_DOOR => 2,
-}
+};
 
 
 my $SSL_CERT         = 'app.tyrion.crt';
@@ -73,7 +74,7 @@ my $OPEN_SWITCH      = 17;
 my $GOOD_NOTES       = [qw{ 1568 1480 1245 880 831 1319 1661 2093 }];
 my $BAD_NOTES        = [ 60 ];
 my $NOTE_DURATION      = 0.2;
-my $UNLOCK_DURATION_MS = 10_000;
+my $UNLOCK_DURATION_SEC = 15;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
 my $TMP_DIR            = '/var/tmp-ramdisk';
 my $LED_PIN       = 4;
@@ -218,21 +219,27 @@ sub do_success_action
         # Button was pressed and then a scan happened.
         # Hold the door open much longer.
         $HOLD_DOOR_OPEN = DO_HOLD_DOOR;
+        say "Opening shop to public, holding open for " . DOOR_HOLD_OPEN_SEC . " seconds";
 
         my $close_door_timer; $close_door_timer = AnyEvent->timer(
             after => DOOR_HOLD_OPEN_SEC,
             cb => sub { 
-                lock_door( $rpi );
+                lock_door( $dev );
                 $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
                 $close_door_timer;
             },
         );
     }
+    elsif( DO_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
+        say "Shop is already open, so do nothing";
+    }
     else {
+        say "Locking door in $UNLOCK_DURATION_SEC seconds";
         my $close_door_timer; $close_door_timer = AnyEvent->timer(
-            after => $UNLOCK_DURATION_MS,
+            after => $UNLOCK_DURATION_SEC,
             cb => sub {
-                lock_door( $rpi );
+                lock_door( $dev );
+                $HOLD_DOOR_OPEN = DONT_HOLD_DOOR; # Just in case
                 $close_door_timer;
             },
         );
@@ -280,11 +287,11 @@ sub get_open_status_callbacks
     my ($rpi) = @_;
 
     my $is_open = 0;
-    my $prev_is_open = 0;
     my $input_callback = sub {
         $is_open = $rpi->input_pin( $OPEN_SWITCH );
 
-        if( (DO_HOLD_DOOR == $HOLD_DOOR_OPEN) && $is_open && !$prev_is_open ) {
+        if( (DONT_HOLD_DOOR == $HOLD_DOOR_OPEN) && $is_open ) {
+            say "Exit button pressed, holding open for " . DOOR_OPEN_SEC . " seconds";
             unlock_door( $rpi );
             $HOLD_DOOR_OPEN = MAYBE_HOLD_DOOR;
             my $input_timer; $input_timer = AnyEvent->timer(
@@ -297,19 +304,18 @@ sub get_open_status_callbacks
                     }
                     elsif( MAYBE_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
                         # No scan was seen during open period, so lock it again
+                        say "No scan of tag, so lock door";
                         lock_door( $rpi );
                         $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
                     }
                     elsif( DO_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
-                        # Scan was seen, door should stay open
+                        say "Tag was scanned, so keep door open";
                     }
 
                     $input_timer;
                 },
             );
         }
-
-        $prev_is_open = $is_open;
 
         say "Open setting: $is_open" if DEBUG;
         return 1;
