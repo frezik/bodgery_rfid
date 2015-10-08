@@ -38,7 +38,6 @@ use Imager;
 
 use constant DEBUG => 1;
 
-use constant DO_USE_LCD           => 0;
 use constant IMG_WIDTH            => 800;
 use constant IMG_HEIGHT           => 600;
 use constant IMG_QUALITY          => 100;
@@ -49,7 +48,16 @@ use constant PRIVATE_KEY_FILE     => 'upload_key.rsa';
 use constant SERVER_USERNAME      => '';
 use constant SERVER_HOST          => ''; # Fill in hostname or IP
 use constant SERVER_UPLOAD_PATH   => ''; # Fill in upload path on server
-use constant DOOR_OPEN_SEC        => 10;
+# How long to hold the door open for a normal scan
+use constant DOOR_OPEN_SEC        => 15;
+# How long to hold the door for general open shop
+use constant DOOR_HOLD_OPEN_SEC   => 60 * 60 * 1;
+
+use constant {
+    DONT_HOLD_DOOR => 0,
+    MAYBE_HOLD_DOOR => 1,
+    DO_HOLD_DOOR => 2,
+}
 
 
 my $SSL_CERT         = 'app.tyrion.crt';
@@ -57,7 +65,6 @@ my $DOMAIN           = 'app.tyrion.thebodgery.org';
 my $AUTH_REALM       = 'Required';
 my $USERNAME         = '';
 my $PASSWORD         = '';
-my $PIEZO_PIN        = 18;
 my $LOCK_PIN         = 22;
 my $UNLOCK_PIN       = 25;
 my $OPEN_SWITCH      = 17;
@@ -70,9 +77,6 @@ my $UNLOCK_DURATION_MS = 10_000;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
 my $TMP_DIR            = '/var/tmp-ramdisk';
 my $LED_PIN       = 4;
-my $LCD_POWER_PIN = 3;
-my $LCD_RST_PIN   = 24;
-my $LCD_DC_PIN    = 23;
 my $TAKE_PICTURE_INTERVAL = 5;
 Getopt::Long::GetOptions(
     'ssl-cert=s'    => \$SSL_CERT,
@@ -98,6 +102,9 @@ $UA->credentials( $DOMAIN . ':443', $AUTH_REALM, $USERNAME, $PASSWORD );
 $UA->ssl_opts(
     SSL_ca_file => $SSL_CERT,
 );
+
+
+my $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
 
 
 sub get_tag_input_event
@@ -201,38 +208,36 @@ sub check_tag_sereal_fallback
     }
 }
 
-
-sub play_notes
-{
-    my (@notes) = @_;
-
-    foreach my $freq (@notes) {
-        HiPi::Wiring::softToneWrite( $PIEZO_PIN, $freq );
-        Time::HiRes::sleep( $NOTE_DURATION );
-    }
-
-    HiPi::Wiring::softToneWrite( $PIEZO_PIN, 0 );
-    HiPi::Wiring::digitalWrite( $PIEZO_PIN, WPI_LOW );
-
-    return 1;
-}
-
 sub do_success_action
 {
     my ($dev) = @_;
     say "Good RFID";
     unlock_door( $dev );
 
-    my $start_time = Time::HiRes::time();
-    my $expect_end_time = $start_time + ($UNLOCK_DURATION_MS / 1000);
+    if( MAYBE_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
+        # Button was pressed and then a scan happened.
+        # Hold the door open much longer.
+        $HOLD_DOOR_OPEN = DO_HOLD_DOOR;
 
-    my $now = $start_time;
-    while( $now <= $expect_end_time ) {
-        play_notes( @$GOOD_NOTES );
-        $now = Time::HiRes::time();
+        my $close_door_timer; $close_door_timer = AnyEvent->timer(
+            after => DOOR_HOLD_OPEN_SEC,
+            cb => sub { 
+                lock_door( $rpi );
+                $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
+                $close_door_timer;
+            },
+        );
+    }
+    else {
+        my $close_door_timer; $close_door_timer = AnyEvent->timer(
+            after => $UNLOCK_DURATION_MS,
+            cb => sub {
+                lock_door( $rpi );
+                $close_door_timer;
+            },
+        );
     }
 
-    lock_door( $dev );
     return 1;
 }
 
@@ -257,23 +262,6 @@ sub do_unknown_error_action
     return 1;
 }
 
-sub send_pic
-{
-    my ($filename) = @_;
-    say "Sending pic to main server";
-
-    my @scp_command = (
-        'scp',
-        '-i', PRIVATE_KEY_FILE,
-        $filename,
-        SERVER_USERNAME . '@' . SERVER_HOST . ':' . SERVER_UPLOAD_PATH,
-    );
-    (system( @scp_command ) == 0)
-        or warn "Could not exec '@scp_command': $!\n";
-
-    return 1;
-}
-
 {
     my $sereal;
     sub get_sereal_decoder
@@ -287,29 +275,6 @@ sub send_pic
     }
 }
 
-sub get_lcd
-{
-    my ($rpi) = @_;
-    return undef unless DO_USE_LCD;
-    say "Setting up LCD . . . " if DEBUG;
-    my $lcd = Device::PCD8544->new({
-        dev      => 0,
-        speed    => Device::PCD8544->SPEED_4MHZ,
-        webio    => $rpi,
-        power    => $LCD_POWER_PIN,
-        rst      => $LCD_RST_PIN,
-        dc       => $LCD_DC_PIN,
-        contrast => 0x3C,
-        bias     => Device::PCD8544->BIAS_1_40,
-    });
-    $lcd->init;
-    $lcd->set_image( \@PIC_CLOSED );
-    $lcd->update;
-
-    say "Done setting LCD" if DEBUG;
-    return $lcd;
-}
-
 sub get_open_status_callbacks
 {
     my ($rpi) = @_;
@@ -319,15 +284,29 @@ sub get_open_status_callbacks
     my $input_callback = sub {
         $is_open = $rpi->input_pin( $OPEN_SWITCH );
 
-        if( $is_open && !$prev_is_open ) {
+        if( (DO_HOLD_DOOR == $HOLD_DOOR_OPEN) && $is_open && !$prev_is_open ) {
             unlock_door( $rpi );
-	    my $input_timer; $input_timer = AnyEvent->timer(
-		after    => DOOR_OPEN_SEC,
-		cb       => sub { 
-                    lock_door( $rpi );
+            $HOLD_DOOR_OPEN = MAYBE_HOLD_DOOR;
+            my $input_timer; $input_timer = AnyEvent->timer(
+                after => DOOR_OPEN_SEC,
+                cb => sub { 
+                    if( DONT_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
+                        # Shouldn't have gotten here, but lock door to be safe
+                        lock_door( $rpi );
+                        $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
+                    }
+                    elsif( MAYBE_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
+                        # No scan was seen during open period, so lock it again
+                        lock_door( $rpi );
+                        $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
+                    }
+                    elsif( DO_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
+                        # Scan was seen, door should stay open
+                    }
+
                     $input_timer;
                 },
-	    );
+            );
         }
 
         $prev_is_open = $is_open;
@@ -336,67 +315,13 @@ sub get_open_status_callbacks
         return 1;
     };
 
-    my $lcd = get_lcd( $rpi );
-    my $lcd_callback = sub {
-        return 0 unless DO_USE_LCD;
-        my $pic = $is_open ? \@PIC_OPEN : \@PIC_CLOSED;
-        say "Setting LCD pic (is open: $is_open)" if DEBUG;
-        $lcd->set_image( $pic );
-        $lcd->update;
-        return 1;
-    };
-
-    my $picture_callback = sub {
-        say "Checking if we should send an image . . . " if DEBUG;
-
-        if( $is_open ) {
-            say "Shop open, getting image";
-            my $fh = $rpi->img_stream( 0, 'image/jpeg' );
-            my ($tmp_fh, $tmp_filename) = tempfile( DIR => $TMP_DIR );
-
-            my $buffer = '';
-            while( read( $fh, $buffer, 4096 ) ) {
-                print $tmp_fh $buffer;
-            }
-            close $tmp_fh;
-            close $fh;
-
-            if( FLIP_IMAGE ) {
-                my $img = Imager->new;
-                $img->read(
-                    file => $tmp_filename,
-                ) or die "Can't open '$tmp_filename': " . $img->errstr;
-                $img = $img->flip( dir => 'vh' );
-                $img->write(
-                    file        => $tmp_filename,
-                    type        => 'jpeg',
-                    jpegquality => IMG_IMAGER_QUALITY,
-                ) or die "Can't write file: " . $img->errstr;
-            }
-
-            send_pic( $tmp_filename );
-            unlink $tmp_filename;
-        }
-        else {
-            if( $is_open != $prev_is_open ) {
-                say "Shop closed, send default closed pic";
-                send_pic( DEFAULT_PIC );
-            }
-            else {
-                say "Shop closed, do nothing" if DEBUG;
-            }
-        }
-
-        $prev_is_open = $is_open;
-        return 1;
-    };
-
-    return ($input_callback, $lcd_callback, $picture_callback);
+    return $input_callback;
 }
 
 sub unlock_door
 {
     my ($dev) = @_;
+    say "Unlocking door";
     $dev->output_pin( $LED_PIN, 1 );
     $dev->output_pin( $LOCK_PIN, 1 );
     $dev->output_pin( $UNLOCK_PIN, 0 );
@@ -406,6 +331,7 @@ sub unlock_door
 sub lock_door
 {
     my ($dev) = @_;
+    say "Locking door";
     $dev->output_pin( $LED_PIN, 0 );
     $dev->output_pin( $LOCK_PIN, 0 );
     $dev->output_pin( $UNLOCK_PIN, 1 );
@@ -418,11 +344,9 @@ sub lock_door
 
     my $rpi = Device::WebIO::RaspberryPi->new;
     $rpi->set_as_input( $OPEN_SWITCH );
-    $rpi->set_as_output( $LCD_POWER_PIN );
     $rpi->set_as_output( $LED_PIN );
     $rpi->set_as_output( $LOCK_PIN );
     $rpi->set_as_output( $UNLOCK_PIN );
-    $rpi->output_pin( $LCD_POWER_PIN, 1 );
 
     # Set pullup resisters for lock/unlock pins.  Have to use 
     # Wiring Pi pin numbering for this
@@ -431,14 +355,6 @@ sub lock_door
 
     lock_door( $rpi );
 
-    # Since Device::WebIO doesn't support sound creation yet, 
-    # set piezo ourselves
-    HiPi::Wiring::pinMode( $PIEZO_PIN, WPI_PWM_OUTPUT );
-    HiPi::Wiring::digitalWrite( $PIEZO_PIN, WPI_LOW );
-    HiPi::Wiring::softToneCreate( $PIEZO_PIN );
-    HiPi::Wiring::pwmSetMode( WPI_PWM_MODE_MS );
-
-
     my $cv = AnyEvent->condvar;
     my $stdin_watcher = AnyEvent->io(
         fh   => \*STDIN,
@@ -446,24 +362,11 @@ sub lock_door
         cb   => get_tag_input_event( $rpi ),
     );
 
-    my ($input_callback, $lcd_callback, $picture_callback)
-        = get_open_status_callbacks( $rpi );
+    my $input_callback = get_open_status_callbacks( $rpi );
     my $input_timer = AnyEvent->timer(
         after    => 1,
-        interval => 0.5,
+        interval => 0.25,
         cb       => $input_callback,
-    );
-
-    my $lcd_timer = AnyEvent->timer(
-        after    => 1,
-        interval => 1,
-        cb       => $lcd_callback,
-    );
-
-    my $picture_timer = AnyEvent->timer(
-        after    => 1,
-        interval => $TAKE_PICTURE_INTERVAL,
-        cb       => $picture_callback,
     );
 
     say "Ready for input";

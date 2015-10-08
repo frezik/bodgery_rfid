@@ -31,6 +31,9 @@ use Sereal::Encoder qw{
     SRL_SNAPPY
     SRL_ZLIB
 };
+use Mojolicious::Plugin::CHI;
+use CHI;
+use Cache::FastMmap;
 
 use constant DB_NAME     => 'bodgery_rfid';
 use constant DB_USERNAME => '';
@@ -40,6 +43,7 @@ use constant SEREAL_COMPRESS       => SRL_SNAPPY;
 use constant SEREAL_DEDUPE_STRINGS => 1;
 
 use constant SHOP_OPEN_KEY => 'shop_open';
+
 
 
 my $FIND_TAG_SQL = q{
@@ -53,6 +57,14 @@ my $FIND_ENTRY_LOG_SQL = q{
             entry_log.is_active_tag, entry_log.is_found_tag
         FROM entry_log
         LEFT OUTER JOIN bodgery_rfid ON entry_log.rfid = bodgery_rfid.rfid
+};
+
+
+plugin 'CHI' => {
+    default => {
+        driver => 'FastMmap',
+        cache_size => '1m',
+    },
 };
 
 
@@ -256,7 +268,7 @@ get '/secure/dump_active_tags' => sub {
 
 get '/shop_open' => sub {
     my ($c) = @_;
-    my $cache = get_mojo_cache();
+    my $cache = get_mojo_cache($c);
     my $out = $cache->get( SHOP_OPEN_KEY );
     $out = 0 unless defined $out;
     $c->render( text => $out );
@@ -265,7 +277,7 @@ get '/shop_open' => sub {
 post '/shop_open/:is_open' => sub {
     my ($c) = @_;
     my $is_open = $c->param( 'is_open' );
-    my $cache = get_mojo_cache();
+    my $cache = get_mojo_cache($c);
     $cache->set( SHOP_OPEN_KEY, $is_open );
     $c->render( text => '' );
 };
@@ -319,14 +331,10 @@ sub log_entry_time
     }
 }
 
+sub get_mojo_cache
 {
-    my $cache;
-    sub get_mojo_cache
-    {
-        return $cache if defined $cache;
-        $cache = Mojo::Cache->new( max_keys => 100 );
-        return $cache;
-    }
+    my ($c) = @_;
+    return $c->chi;
 }
 
 
