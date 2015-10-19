@@ -4,3 +4,4 @@ rfid_fallback.db
 *.crt
 .passwd
 shop_pic_conf.sh
+linode_upload_key.*
