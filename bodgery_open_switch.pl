@@ -9,7 +9,6 @@ use LWP::UserAgent;
 
 my $POST_URL = 'https://app.tyrion.thebodgery.org/shop_open/';
 my $INPUT_PIN = 23;
-my $CHECK_TIME_SEC = 30;
 my $SSL_CERT = 'app.tyrion.crt';
 
 
@@ -38,10 +37,5 @@ sub send_open
 
 my $rpi = Device::WebIO::RaspberryPi->new;
 $rpi->set_as_input( $INPUT_PIN );
-say "Ready . . . ";
-
-while(1) {
-    my $in = $rpi->input_pin( $INPUT_PIN );
-    send_open( $in );
-    sleep $CHECK_TIME_SEC;
-}
+my $in = $rpi->input_pin( $INPUT_PIN );
+send_open( $in );
