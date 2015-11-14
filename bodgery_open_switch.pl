@@ -9,8 +9,14 @@ use LWP::UserAgent;
 
 my $POST_URL = 'https://app.tyrion.thebodgery.org/shop_open/';
 my $INPUT_PIN = 23;
-#my $CHECK_TIME_SEC = 30;
-my $CHECK_TIME_SEC = 1;
+my $CHECK_TIME_SEC = 30;
+my $SSL_CERT = 'app.tyrion.crt';
+
+
+my $UA = LWP::UserAgent->new;
+$UA->ssl_opts(
+    SSL_ca_file => $SSL_CERT,
+);
 
 
 sub send_open
@@ -20,12 +26,11 @@ sub send_open
     my $url = $POST_URL . ($value ? '1' : '0');
     say "Sending URL: $url";
 
-#    my $ua = LWP::UserAgent->new;
-#    my $response = $ua->post( $POST_URL );
-#
-#    if(! $response->is_success ) {
-#        say "Invalid response to '$POST_URL': " . $response->status_line;
-#    }
+    my $response = $UA->post( $url );
+
+    if(! $response->is_success ) {
+        say "Invalid response to '$url': " . $response->status_line;
+    }
 
     return 1;
 }
@@ -37,7 +42,6 @@ say "Ready . . . ";
 
 while(1) {
     my $in = $rpi->input_pin( $INPUT_PIN );
-    say "Got open value: $in";
-    #send_open( $in );
+    send_open( $in );
     sleep $CHECK_TIME_SEC;
 }
