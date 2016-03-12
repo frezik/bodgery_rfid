@@ -1,0 +1,47 @@
+#!perl6
+use HTTP::UserAgent;
+
+my $CHECK_TIME_SEC = 30;
+my $TMP_SAVE_FILE = 'temp.jpg';
+my $CHECK_OPEN_URL = 'https://app.tyrion.thebodgery.org/shop_open';
+my $DEFAULT_CLOSED_PIC = 'bodgery_default.jpg';
+
+
+sub is-shop-open( $url )
+{
+    my $ua = HTTP::UserAgent.new;
+
+    try my $response = $ua.get( $url );
+
+    if $response.is-success {
+        return $response.content ne '0';
+    }
+    else {
+        return False;
+    }
+}
+
+sub take-picture( $out_file )
+{
+    # TODO
+}
+
+sub send-picture( $pic_file )
+{
+    # TODO
+}
+
+
+loop {
+    if is-shop-open( $CHECK_OPEN_URL ) {
+        say "Shop open";
+        take-picture( $TMP_SAVE_FILE );
+        send-picture( $TMP_SAVE_FILE );
+    }
+    else {
+        say "Shop closed";
+        send-picture( $DEFAULT_CLOSED_PIC );
+    }
+
+    sleep $CHECK_TIME_SEC
+}

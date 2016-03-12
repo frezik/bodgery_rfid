@@ -41,18 +41,21 @@ $t->get_ok( '/check_tag/1234' )
 $t->put_ok( '/secure/new_tag/1234/foo' )
     ->status_is( '201' ); # Tag added
 
+sleep 1;
 $t->get_ok( '/check_tag/1234' )
     ->status_is( '200' ); # Tag now exists and is active
 
 $t->post_ok( '/secure/deactivate_tag/1234' )
     ->status_is( '200' ); # Tag deactivated
 
+sleep 1; # Ensures ordering
 $t->get_ok( '/check_tag/1234' )
     ->status_is( '403' ); # Tag exists, but no longer active
 
 $t->post_ok( '/secure/reactivate_tag/1234' )
     ->status_is( '200' ); # Tag reactivated
 
+sleep 1;
 $t->get_ok( '/check_tag/1234' )
     ->status_is( '200' ); # Tag now exists and is active
 
@@ -75,6 +78,7 @@ $t->get_ok( '/secure/search_tags?tag=3456', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_is( "" );
 
+sleep 1;
 $t->get_ok( '/check_tag/1236' )
     ->status_is( '404' );
 
@@ -82,11 +86,11 @@ my $date_reg = qr/[\d\-: ]+/;
 $t->get_ok( '/secure/search_entry_log', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_like( qr/\A
-        foo,1234,$date_reg,0,0 \n
+        ,1236,$date_reg,0,0 \n
         foo,1234,$date_reg,1,1 \n
         foo,1234,$date_reg,0,1 \n
         foo,1234,$date_reg,1,1 \n
-        ,1236,$date_reg,0,0 \n
+        foo,1234,$date_reg,0,0 \n
     /msx );
 $t->get_ok( '/secure/search_entry_log?tag=3456', {Accept => 'text/plain'} )
     ->status_is( '200' )
@@ -94,10 +98,10 @@ $t->get_ok( '/secure/search_entry_log?tag=3456', {Accept => 'text/plain'} )
 $t->get_ok( '/secure/search_entry_log?tag=1234', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_like( qr/\A
-        foo,1234,$date_reg,0,0 \n
         foo,1234,$date_reg,1,1 \n
         foo,1234,$date_reg,0,1 \n
         foo,1234,$date_reg,1,1 \n
+        foo,1234,$date_reg,0,0 \n
     /mx );
 
 $t->get_ok( '/secure/dump_active_tags' )

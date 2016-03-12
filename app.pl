@@ -39,6 +39,10 @@ use constant DB_NAME     => 'bodgery_rfid';
 use constant DB_USERNAME => '';
 use constant DB_PASSWORD => '';
 
+use constant DB_GUEST_NAME => 'bodgery_liability';
+use constant DB_GUEST_USERNAME => '';
+use constant DB_GUEST_PASSWORD => '';
+
 use constant SEREAL_COMPRESS       => SRL_SNAPPY;
 use constant SEREAL_DEDUPE_STRINGS => 1;
 
@@ -57,6 +61,12 @@ my $FIND_ENTRY_LOG_SQL = q{
             entry_log.is_active_tag, entry_log.is_found_tag
         FROM entry_log
         LEFT OUTER JOIN bodgery_rfid ON entry_log.rfid = bodgery_rfid.rfid
+};
+my $FIND_LIABILITY_SQL = q{
+    SELECT full_name, addr, city, state, zip, phone, email,
+        emergency_contact_name, emergency_contact_phone, created_date
+        FROM liability_waivers
+        WHERE lower(full_name) LIKE ?
 };
 
 
@@ -266,6 +276,32 @@ get '/secure/dump_active_tags' => sub {
     $c->render( data => $encoded, format => 'sereal' );
 };
 
+get '/secure/search_liability/:name' => sub {
+    my ($c) = @_;
+    my $search_name = $c->param( 'name' );
+
+    my $sql = $FIND_LIABILITY_SQL;
+    my @sql_params = ( $search_name . '%' );
+    my $dbh = get_liability_dbh();
+    my $sth = $dbh->prepare_cached( $sql )
+        or die "Can't prepare statement: " . $dbh->errstr;
+    $sth->execute( @sql_params )
+        or die "Can't execute statement: " . $sth->errstr;
+
+    my $out = '';
+    while( my $row = $sth->fetchrow_arrayref ) {
+        no warnings; # $full_name could be NULL, which is OK
+        my ($full_name, $addr, $city, $state, $zip, $phone, $email,
+            $emergency_name, $emergency_phone, $date) = @$row;
+        $out .= join( ",", $full_name, $addr, $city, $state, $zip, $phone, $email,
+            $emergency_name, $emergency_phone, $date )
+            . "\n";
+    }
+    $sth->finish;
+
+    $c->render( text => $out );
+};
+
 get '/shop_open' => sub {
     my ($c) = @_;
     my $cache = get_mojo_cache($c);
@@ -303,6 +339,31 @@ post '/shop_open/:is_open' => sub {
     {
         my ($in_dbh) = @_;
         $dbh = $in_dbh;
+        return 1;
+    }
+}
+
+{
+    my $liability_dbh;
+    sub get_liability_dbh
+    {
+        return $liability_dbh if defined $liability_dbh;
+        $liability_dbh = DBI->connect(
+            'dbi:Pg:dbname=' . DB_GUEST_NAME,
+            DB_GUEST_USERNAME,
+            DB_GUEST_PASSWORD,
+            {
+                AutoCommit => 1,
+                RaiseError => 0,
+            },
+        ) or die "Could not connect to database: " . DBI->errstr;
+        return $liability_dbh;
+    }
+
+    sub set_liability_dbh
+    {
+        my ($in_dbh) = @_;
+        $liability_dbh = $in_dbh;
         return 1;
     }
 }

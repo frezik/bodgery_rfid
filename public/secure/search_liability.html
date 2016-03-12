@@ -1,0 +1,103 @@
+<html>
+<head>
+<title>Liability Log</title>
+<script type="text/javascript" src="/jquery-2.1.3.min.js"></script>
+<script type="text/javascript">
+var tag_table;
+var msg_div;
+
+$( document ).ready(function () {
+    tag_table = $( "#tag_table" );
+    msg_div   = $( "#msg" );
+    get_list( 0, 0 );
+});
+
+function get_list ( offset, limit, name )
+{
+    var url = "/secure/search_liability";
+    msg_div.text( "Loading . . . " );
+    $.ajax( url, {
+        "type": "GET",
+        "dataType": "text",
+        "data": {
+            "offset": offset,
+            "limit":  limit,
+            "tag":    name
+        },
+        "error": function (jqXHR, str, exception) {
+            msg_div.text( "Error searching log: " + str );
+        },
+        "success": function (data, str, jqXHR) {
+            msg_div.text( "" );
+            update_table( data );
+        }
+    });
+}
+
+function update_table( csv_data )
+{
+    $( ".row_data" ).remove();
+
+    var rows = csv_data.split("\n");
+    rows.forEach( function (value) {
+        if( value == "" ) return 1;
+        var row_data = value.split( "," );
+        var name       = row_data[0];
+        var addr       = row_data[1];
+        var city       = row_data[2];
+        var state      = row_data[3];
+        var zip        = row_data[4];
+        var phone      = row_data[5];
+        var email      = row_data[6];
+        var emergency_contact_name  = row_data[7];
+        var emergency_contact_phone = row_data[8];
+        var date = row_data[9];
+
+        tag_table.append( '<tr class="row_data">'
+            + "<td>" + name       + "</td>"
+            + "<td><strong>" + emergency_contact_name + "</strong></td>"
+            + "<td><strong>" + emergency_contact_phone + "</strong></td>"
+            + "<td>" + addr + "</td>"
+            + "<td>" + city + "</td>"
+            + "<td>" + state + "</td>"
+            + "<td>" + zip + "</td>"
+            + "<td>" + phone + "</td>"
+            + "<td>" + email + "</td>"
+            + "<td>" + date + "</td>"
+            + "</tr>"
+        );
+    });
+
+    return 1;
+}
+
+</script>
+</head>
+<body>
+
+<h1>Liability Log</h1>
+
+<div id="msg"></div>
+
+<p><input type="button" value="Refresh" onClick="get_list( 0, 0 )"></p>
+<p>Search for name: <input type="text" id="search" name="search">
+    <input type="button" value="Search" onClick="get_list( 0, 0, 
+        $('#search').val() )"></p>
+
+<table id="tag_table" border="1" cellpadding="2" cellspacing="2">
+    <tr id="tag_table_header">
+        <th>Name</th>
+        <th>Emergency Contact Name</th>
+        <th>Emergency Contact Phone</th>
+        <th>Address</th>
+        <th>City</th>
+        <th>State</th>
+        <th>Zip</th>
+        <th>Phone</th>
+        <th>Email</th>
+        <th>Date</th>
+    </tr>
+</table>
+
+</body>
+</html>
