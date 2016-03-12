@@ -14,7 +14,7 @@ $( document ).ready(function () {
 
 function get_list ( offset, limit, name )
 {
-    var url = "/secure/search_liability";
+    var url = "/secure/search_liability/" + name;
     msg_div.text( "Loading . . . " );
     $.ajax( url, {
         "type": "GET",
