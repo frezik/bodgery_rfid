@@ -5,6 +5,7 @@ source shop_pic_conf.sh
 echo "Taking pic . . . "
 raspistill -n -t 1 \
     -w ${WIDTH} -h ${HEIGHT} -q ${JPEG_QUALITY} \
+    ${EXTRA_PIC_ARGS} \
     -o ${OUT_FILE}
 echo "Sending pic . . . "
 scp -i ${PRIVATE_KEY_FILE} \
