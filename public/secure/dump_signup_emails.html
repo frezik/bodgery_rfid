@@ -1,0 +1,53 @@
+<html>
+<head>
+<title>Dump Signup Emails</title>
+<script type="text/javascript" src="/jquery-2.1.3.min.js"></script>
+<script type="text/javascript">
+var email_textarea;
+
+$( document ).ready(function () {
+    email_textarea = $( "#emails" );
+    get_emails();
+});
+
+function get_emails ()
+{
+    var url = "/secure/dump_email_signups";
+    email_textarea.value = "Loading . . . ";
+
+    $.getJSON( url, {
+        "type": "GET",
+        "error": function (jqXHR, str, exception) {
+            email_textarea.value = "Error fetching emails: " + str;
+        },
+        "success": function (data, str, jqXHR) {
+            var emails = data.emails;
+            var ids = data.ids;
+            email_textarea.value = emails.join( ", " );
+            
+            $.each( ids, function( index, value ) {
+                submit_form.append( $( '<input type="hidden"'
+                    + 'name="id"'
+                    + 'value="' + value + '"'
+                    + '>'
+                ));
+            });
+        }
+    });
+}
+
+</script>
+</head>
+<body>
+
+<h1>Dump Signup Emails</h1>
+
+<p><textarea id="emails" name="emails" rows="80" cols="10"></textarea></p>
+
+<form id="email_form" method="POST" action="/secure/mark_emails_signed_up">
+<p><input type="button" value="Mark Emails Signed Up" onClick="submit_ids()"></p>
+</form>
+</form>
+
+</body>
+</html>

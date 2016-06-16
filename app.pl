@@ -68,6 +68,9 @@ my $FIND_LIABILITY_SQL = q{
         FROM liability_waivers
         WHERE lower(full_name) LIKE ?
 };
+my $DUMP_EMAILS_SQL = 'SELECT id, email FROM guest_signin'
+    . ' WHERE is_mailing_list_exported = FALSE';
+
 
 
 plugin 'CHI' => {
@@ -300,6 +303,43 @@ get '/secure/search_liability/:name' => sub {
     $sth->finish;
 
     $c->render( text => $out );
+};
+
+get '/secure/dump_email_signups' => sub {
+    my $dbh = get_liability_dbh();
+    my $sth = $dbh->prepare_cached( $DUMP_EMAILS_SQL )
+        or die "Can't prepare statement: " . $dbh->errstr;
+    $sth->execute()
+        or die "Can't execute statement: " . $sth->errstr;
+    
+    my (@ids, @emails);
+    while( my $row = $sth->fetchrow_hashref ) {
+        push @ids => $row->{id};
+        push @emails => $row->{email};
+    }
+    $sth->finish;
+
+    $c->render( json => {
+        ids => \@ids,
+        emails => \@emails,
+    });
+};
+
+post '/secure/mark_emails_signed_up' => sub {
+    my $mark_emails_signed_up_sql = 'UPDATE guest_signin'
+        . ' SET is_mailing_list_exported = TRUE'
+        . ' WHERE id IN (' . join( ',', ('?') x scalar(@ids) ) . ')';
+
+    my @ids = @{ $c->every_param( 'id' ) };
+
+    my $sth = $dbh->prepare_cached( $mark_emails_signed_up_sql )
+        or die "Can't prepare statement: " . $dbh->errstr;
+    $sth->execute( @ids )
+        or die "Can't execute statement: " . $sth->errstr;
+    $sth->finish;
+
+    $c->res->code( 200 );
+    $c->render( text => scalar(@ids) . ' emails marked as joined' );
 };
 
 get '/shop_open' => sub {
