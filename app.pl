@@ -306,7 +306,9 @@ get '/secure/search_liability/:name' => sub {
 };
 
 get '/secure/dump_email_signups' => sub {
+    my ($c) = @_;
     my $dbh = get_liability_dbh();
+
     my $sth = $dbh->prepare_cached( $DUMP_EMAILS_SQL )
         or die "Can't prepare statement: " . $dbh->errstr;
     $sth->execute()
@@ -326,11 +328,13 @@ get '/secure/dump_email_signups' => sub {
 };
 
 post '/secure/mark_emails_signed_up' => sub {
+    my ($c) = @_;
+    my $dbh = get_liability_dbh();
+    my @ids = @{ $c->every_param( 'id' ) };
+
     my $mark_emails_signed_up_sql = 'UPDATE guest_signin'
         . ' SET is_mailing_list_exported = TRUE'
         . ' WHERE id IN (' . join( ',', ('?') x scalar(@ids) ) . ')';
-
-    my @ids = @{ $c->every_param( 'id' ) };
 
     my $sth = $dbh->prepare_cached( $mark_emails_signed_up_sql )
         or die "Can't prepare statement: " . $dbh->errstr;
