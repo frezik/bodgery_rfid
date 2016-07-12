@@ -23,7 +23,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 use Test::More;
 use v5.14;
-use Test::More;
 use Test::Mojo;
 use lib 't/lib';
 use TestDB;

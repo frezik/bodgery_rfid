@@ -56,6 +56,11 @@ my $FIND_TAG_SQL = q{
 my $INSERT_ENTRY_TIME_SQL = q{
     INSERT INTO entry_log (rfid, is_active_tag, is_found_tag) VALUES (?, ?, ?)
 };
+my $INSERT_MEMBER_COST_SQL = q{
+    INSERT INTO member_costs (member_id, cost_bucket_id, qty) VALUES (
+        (SELECT DISTINCT id FROM members WHERE rfid = ?)
+    , ?, ?)
+};
 my $FIND_ENTRY_LOG_SQL = q{
     SELECT members.first_name, members.last_name, entry_log.rfid,
             entry_log.entry_time, entry_log.is_active_tag, entry_log.is_found_tag
@@ -70,6 +75,17 @@ my $FIND_LIABILITY_SQL = q{
 };
 my $DUMP_EMAILS_SQL = 'SELECT id, email FROM guest_signin'
     . ' WHERE is_mailing_list_exported = FALSE';
+my $FIND_MEMBER_COST_SQL = q{
+    SELECT bucket.name, bucket.cost, bucket.cost_per, member.paid_on
+        FROM member_costs member, cost_buckets bucket
+        WHERE member.cost_bucket_id = bucket.id 
+            AND member.id = ?
+};
+my $UPDATE_BUCKET_PAID_SQL_CALLBACK = sub {
+    'UPDATE member_costs SET paid_on = '
+        . get_db_now_keyword()
+        . ' WHERE id = ?';
+};
 
 
 
@@ -379,6 +395,110 @@ post '/shop_open/:is_open' => sub {
     $c->render( text => '' );
 };
 
+put '/secure/bucket/:name/:cost/:per' => sub {
+    my ($c) = @_;
+    my $name = $c->param( 'name' );
+    my $cost = $c->param( 'cost' );
+    my $per  = $c->param( 'per' );
+
+    my $dbh = get_dbh();
+    my $sa = SQL::Abstract->new;
+    my ($sql, @params) = $sa->insert( 'cost_buckets', {
+        name => $name,
+        cost => $cost,
+        cost_per => $per,
+    });
+    $dbh->do( $sql, {}, @params )
+        or die "Can't do new tag statement: " . $dbh->errstr;
+
+    my $id = $dbh->last_insert_id( undef, undef, undef, undef, {
+        sequence => 'cost_bucket_seq',
+    });
+
+    $c->res->code( 201 );
+    $c->render( text => $id );
+};
+
+get '/buckets' => sub {
+    my ($c) = @_;
+
+    my $sa = SQL::Abstract->new;
+    my ($sql, @sql_params) = $sa->select(
+        'cost_buckets',
+        [qw{ id name cost cost_per }],
+        {
+        },
+    );
+
+    my $dbh = get_dbh();
+    my $sth = $dbh->prepare_cached( $sql )
+        or die "Couldn't prepare statement: " . $dbh->errstr;
+    $sth->execute( @sql_params )
+        or die "Couldn't execute statement: " . $sth->errstr;
+
+    my @results = ();
+    while( my $row = $sth->fetchrow_hashref ) {
+        push @results, $row;
+    }
+    $sth->finish;
+
+    $c->render( json => \@results );
+};
+
+put '/bucket' => sub {
+    my ($c) = @_;
+    my $rfid = $c->param( 'rfid' );
+    my $bucket = $c->param( 'bucket' );
+    my $qty = $c->param( 'qty' );
+
+    my $dbh = get_dbh();
+    $dbh->do( $INSERT_MEMBER_COST_SQL, {}, $rfid, $bucket, $qty )
+        or die "Can't do statement: " . $dbh->errstr;
+
+    my $id = $dbh->last_insert_id( undef, undef, undef, undef, {
+        sequence => 'member_cost_seq',
+    });
+
+    $c->res->code( 201 );
+    $c->render( text => $id );
+};
+
+get '/bucket/:id' => sub {
+    my ($c) = @_;
+    my $id = $c->param( 'id' );
+
+    my $dbh = get_dbh();
+    my $sth = $dbh->prepare_cached( $FIND_MEMBER_COST_SQL )
+        or die "Couldn't prepare statement: " . $dbh->errstr;
+    $sth->execute( $id )
+        or die "Couldn't execute statement: " . $sth->errstr;
+
+    my @results = ();
+    while( my $row = $sth->fetchrow_hashref ) {
+        $row->{is_paid} = defined $row->{paid_on} ? 1 : 0;
+        push @results, $row;
+    }
+    $sth->finish;
+
+    $c->render( json => \@results );
+};
+
+post '/bucket_paid/:id' => sub {
+    my ($c) = @_;
+    my $id = $c->param( 'id' );
+
+    my $dbh = get_dbh();
+    my $sql = $UPDATE_BUCKET_PAID_SQL_CALLBACK->();
+    my $sth = $dbh->prepare_cached( $sql )
+        or die "Can't prepare statement: " . $dbh->errstr;
+    $sth->execute( $id )
+        or die "Can't execute statement: " . $dbh->errstr;
+    $sth->finish;
+
+    $c->res->code( 200 );
+    $c->render( text => '' );
+};
+
 {
     my $dbh;
     sub get_dbh
@@ -402,6 +522,15 @@ post '/shop_open/:is_open' => sub {
         $dbh = $in_dbh;
         return 1;
     }
+
+    my $db_now_keyword = 'NOW()';
+    sub set_db_now_keyword
+    {
+        my ($set) = @_;
+        $db_now_keyword = $set;
+    }
+
+    sub get_db_now_keyword { $db_now_keyword }
 }
 
 {

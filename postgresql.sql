@@ -75,14 +75,18 @@ CREATE TABLE entry_log (
 CREATE INDEX ON entry_log (entry_time DESC);
 
 
-
-
--- Old RFID table
-CREATE TABLE bodgery_rfid (
-    id        SERIAL PRIMARY KEY NOT NULL,
-    rfid      TEXT NOT NULL UNIQUE,
-    full_name TEXT NOT NULL UNIQUE,
-    active    BOOLEAN NOT NULL DEFAULT TRUE
+CREATE TABLE cost_buckets (
+    id INTEGER PRIMARY KEY NOT NULL DEFAULT nextval('cost_bucket_seq'),
+    name TEXT NOT NULL,
+    cost INTEGER NOT NULL,
+    cost_per TEXT NOT NULL
 );
-CREATE INDEX ON bodgery_rfid (lower(full_name));
 
+CREATE TABLE member_costs (
+    id INTEGER PRIMARY KEY NOT NULL DEFAULT nextval('member_cost_seq'),
+    cost_bucket_id INT NOT NULL REFERENCES cost_buckets (id),
+    member_id INT NOT NULL REFERENCES members (id),
+    qty INT NOT NULL,
+    paid_on DATETIME,
+    entered_date DATETIME NOT NULL DEFAULT NOW()
+);

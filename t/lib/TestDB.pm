@@ -77,6 +77,24 @@ use constant TEST_GUEST_TABLE => q{
         join_mailing_list BOOLEAN NOT NULL
     );
 };
+use constant TEST_COST_BUCKET_TABLE => q{
+    CREATE TABLE cost_buckets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        name TEXT NOT NULL,
+        cost INTEGER NOT NULL,
+        cost_per TEXT NOT NULL
+    );
+};
+use constant TEST_MEMBER_COST_TABLE => q{
+    CREATE TABLE member_costs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        cost_bucket_id INT NOT NULL REFERENCES cost_buckets (id),
+        member_id INT NOT NULL REFERENCES members (id),
+        qty INT NOT NULL,
+        paid_on DATETIME,
+        entered_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+};
 
 
 my $tmp_obj;
@@ -101,6 +119,8 @@ sub get_test_dbh
         TEST_LOG_TABLE,
         TEST_LIABILITY_TABLE,
         #TEST_GUEST_TABLE,
+        TEST_COST_BUCKET_TABLE,
+        TEST_MEMBER_COST_TABLE,
     ) {
         $dbh->do( $_ ) or die "Could not create table: " . $dbh->errstr;
     }
