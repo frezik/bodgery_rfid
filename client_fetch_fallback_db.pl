@@ -29,7 +29,7 @@ use WWW::Mechanize;
 use Fcntl qw( :flock );
 
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
-my $SSL_CERT         = 'app.tyrion.crt';
+my $SSL_CERT         = undef;
 my $HOST             = 'https://app.tyrion.thebodgery.org';
 my $AUTH_REALM       = 'Authentication';
 my $USERNAME         = 'varys';
@@ -48,7 +48,7 @@ my $MECH = WWW::Mechanize->new(
 $MECH->credentials( $USERNAME, $PASSWORD );
 $MECH->ssl_opts(
     SSL_ca_file => $SSL_CERT,
-);
+) if defined $SSL_CERT;
 
 my $response = $MECH->get( $HOST . '/secure/dump_active_tags' );
 if( $response->is_success ) {

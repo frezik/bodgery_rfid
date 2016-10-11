@@ -60,7 +60,7 @@ use constant {
 };
 
 
-my $SSL_CERT         = 'app.tyrion.crt';
+my $SSL_CERT         = undef;
 my $DOMAIN           = 'app.tyrion.thebodgery.org';
 my $AUTH_REALM       = 'Required';
 my $USERNAME         = '';
@@ -101,7 +101,7 @@ my $UA = AnyEvent::HTTP::LWP::UserAgent->new;
 $UA->credentials( $DOMAIN . ':443', $AUTH_REALM, $USERNAME, $PASSWORD );
 $UA->ssl_opts(
     SSL_ca_file => $SSL_CERT,
-);
+) if defined $SSL_CERT;
 
 
 my $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;

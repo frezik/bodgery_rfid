@@ -9,13 +9,13 @@ use LWP::UserAgent;
 
 my $POST_URL = 'https://app.tyrion.thebodgery.org/shop_open/';
 my $INPUT_PIN = 23;
-my $SSL_CERT = 'app.tyrion.crt';
+my $SSL_CERT = undef;
 
 
 my $UA = LWP::UserAgent->new;
 $UA->ssl_opts(
     SSL_ca_file => $SSL_CERT,
-);
+) if defined $SSL_CERT;
 
 
 sub send_open

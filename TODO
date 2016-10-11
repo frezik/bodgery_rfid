@@ -5,3 +5,4 @@ TODO
 * Fix public/ for member signup changes
 * Take member photo upload at signup
 * Import current member data
+* Delete RFID entry
