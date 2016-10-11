@@ -1,5 +1,8 @@
 TODO
 ====
+* Test client2.pl
+* Write separate exit button checker program
+
 * Database config is its own file
     * File should be in gitignore
 * Fix public/ for member signup changes
