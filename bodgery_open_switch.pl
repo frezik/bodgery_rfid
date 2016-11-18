@@ -35,7 +35,19 @@ sub send_open
 }
 
 
-my $rpi = Device::WebIO::RaspberryPi->new;
-$rpi->set_as_input( $INPUT_PIN );
-my $in = $rpi->input_pin( $INPUT_PIN );
-send_open( $in );
+my $is_open = 0;
+# Between 6 and 10pm on Monday and Friday, we are always open
+my ($hour, $wday) = (localtime)[2,6];
+if(
+    (($wday == 1) || ($wday == 5))
+    && ($hour >= 18)
+    && ($hour <= 22)
+){ 
+    $is_open = 1;
+}
+else {
+    my $rpi = Device::WebIO::RaspberryPi->new;
+    $rpi->set_as_input( $INPUT_PIN );
+    $is_open = $rpi->input_pin( $INPUT_PIN );
+}
+send_open( $is_open );
