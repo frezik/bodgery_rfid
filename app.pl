@@ -51,16 +51,21 @@ use constant SHOP_OPEN_KEY => 'shop_open';
 
 
 my $FIND_TAG_SQL = q{
-    SELECT id, active FROM bodgery_rfid WHERE rfid = ?
+    SELECT id, active FROM members WHERE rfid = ?
 };
 my $INSERT_ENTRY_TIME_SQL = q{
     INSERT INTO entry_log (rfid, is_active_tag, is_found_tag) VALUES (?, ?, ?)
 };
+my $INSERT_MEMBER_COST_SQL = q{
+    INSERT INTO member_costs (member_id, cost_bucket_id, qty) VALUES (
+        (SELECT DISTINCT id FROM members WHERE rfid = ?)
+    , ?, ?)
+};
 my $FIND_ENTRY_LOG_SQL = q{
-    SELECT bodgery_rfid.full_name, entry_log.rfid, entry_log.entry_time,
-            entry_log.is_active_tag, entry_log.is_found_tag
+    SELECT members.first_name, members.last_name, entry_log.rfid,
+            entry_log.entry_time, entry_log.is_active_tag, entry_log.is_found_tag
         FROM entry_log
-        LEFT OUTER JOIN bodgery_rfid ON entry_log.rfid = bodgery_rfid.rfid
+        LEFT OUTER JOIN members ON entry_log.rfid = members.rfid
 };
 my $FIND_LIABILITY_SQL = q{
     SELECT full_name, addr, city, state, zip, phone, email,
@@ -70,6 +75,17 @@ my $FIND_LIABILITY_SQL = q{
 };
 my $DUMP_EMAILS_SQL = 'SELECT id, email FROM guest_signin'
     . ' WHERE is_mailing_list_exported = FALSE AND email is not null';
+my $FIND_MEMBER_COST_SQL = q{
+    SELECT bucket.name, bucket.cost, bucket.cost_per, member.paid_on
+        FROM member_costs member, cost_buckets bucket
+        WHERE member.cost_bucket_id = bucket.id 
+            AND member.id = ?
+};
+my $UPDATE_BUCKET_PAID_SQL_CALLBACK = sub {
+    'UPDATE member_costs SET paid_on = '
+        . get_db_now_keyword()
+        . ' WHERE id = ?';
+};
 
 
 
@@ -115,17 +131,33 @@ get '/check_tag/:tag' => sub {
     $c->render( text => $text );
 };
 
-put '/secure/new_tag/:tag/:full_name' => sub {
+put '/secure/new_tag/:tag' => sub {
     my ($c)       = @_;
     my $tag       = $c->param( 'tag' );
-    my $full_name = $c->param( 'full_name' );
+    my $first_name = $c->param( 'first_name' );
+    my $last_name = $c->param( 'last_name' );
+    my $phone = $c->param( 'phone' );
+    my $email = $c->param( 'email' );
+    my $address = $c->param( 'address' );
+    my $notes = $c->param( 'notes' );
+    my $signing_member_id = $c->param( 'signing_member_id' );
+    my $member_type_id = $c->param( 'member_type_id' );
 
     my $dbh = get_dbh();
     my $sa = SQL::Abstract->new;
-    my ($sql, @params) = $sa->insert( 'bodgery_rfid', {
+    my ($sql, @params) = $sa->insert( 'members', {
         rfid      => $tag,
-        full_name => $full_name,
         active    => 1,
+        first_name => $first_name,
+        last_name => $last_name,
+        phone => $phone,
+        email => $email,
+        entry_type => 'fob',
+        address => $address,
+        address_type => 'real',
+        signing_member => $signing_member_id,
+        member_type => $member_type_id,
+        ($notes ? (notes => $notes) : ()),
     });
     $dbh->do( $sql, {}, @params )
         or die "Can't do new tag statement: " . $dbh->errstr;
@@ -141,7 +173,7 @@ post '/secure/deactivate_tag/:tag' => sub {
     my $dbh = get_dbh();
     my $sa = SQL::Abstract->new;
     my ($sql, @sql_bind) = $sa->update(
-        'bodgery_rfid',
+        'members',
         {
             active => 0,
         },
@@ -163,7 +195,7 @@ post '/secure/reactivate_tag/:tag' => sub {
     my $dbh = get_dbh();
     my $sa = SQL::Abstract->new;
     my ($sql, @sql_bind) = $sa->update(
-        'bodgery_rfid',
+        'members',
         {
             active => 1,
         },
@@ -187,11 +219,12 @@ get '/secure/search_tags' => sub {
 
     my $sa = SQL::Abstract->new;
     my ($sql, @sql_params) = $sa->select(
-        'bodgery_rfid',
-        [qw{ rfid full_name active }],
+        'members',
+        [qw{ rfid first_name last_name active }],
         {
             (defined $name
-                ? ('lower(full_name)' => { 'like', lc($name) . '%' })
+                ? (q{lower(first_name || ' ' || last_name)}
+                    => { 'like', lc($name) . '%' })
                 : ()),
             (defined $tag  ? ('rfid' => $tag) : ()),
         },
@@ -206,8 +239,8 @@ get '/secure/search_tags' => sub {
     my @results = ();
     my $out = '';
     while( my $row = $sth->fetchrow_arrayref ) {
-        my ($rfid, $full_name, $active) = @$row;
-        $out .= "$rfid,$full_name,$active\n";
+        my ($rfid, $first_name, $last_name, $active) = @$row;
+        $out .= "$rfid,$first_name,$last_name,$active\n";
     }
     $sth->finish;
 
@@ -238,9 +271,9 @@ get '/secure/search_entry_log' => sub {
     my $out = '';
     while( my $row = $sth->fetchrow_arrayref ) {
         no warnings; # $full_name could be NULL, which is OK
-        my ($full_name, $rfid, $entry_time, $is_active_tag, $is_found_tag)
-            = @$row;
-        $out .= join( ",", $full_name, $rfid, $entry_time,
+        my ($first_name, $last_name, $rfid, $entry_time, $is_active_tag,
+            $is_found_tag) = @$row;
+        $out .= join( ",", $first_name, $last_name, $rfid, $entry_time,
             $is_active_tag, $is_found_tag )
             . "\n";
     }
@@ -254,7 +287,7 @@ get '/secure/dump_active_tags' => sub {
 
     my $sa = SQL::Abstract->new;
     my ($sql, @sql_params) = $sa->select(
-        'bodgery_rfid',
+        'members',
         [qw{ rfid }],
         {
             active => 1,
@@ -362,6 +395,110 @@ post '/shop_open/:is_open' => sub {
     $c->render( text => '' );
 };
 
+put '/secure/bucket/:name/:cost/:per' => sub {
+    my ($c) = @_;
+    my $name = $c->param( 'name' );
+    my $cost = $c->param( 'cost' );
+    my $per  = $c->param( 'per' );
+
+    my $dbh = get_dbh();
+    my $sa = SQL::Abstract->new;
+    my ($sql, @params) = $sa->insert( 'cost_buckets', {
+        name => $name,
+        cost => $cost,
+        cost_per => $per,
+    });
+    $dbh->do( $sql, {}, @params )
+        or die "Can't do new tag statement: " . $dbh->errstr;
+
+    my $id = $dbh->last_insert_id( undef, undef, undef, undef, {
+        sequence => 'cost_bucket_seq',
+    });
+
+    $c->res->code( 201 );
+    $c->render( text => $id );
+};
+
+get '/buckets' => sub {
+    my ($c) = @_;
+
+    my $sa = SQL::Abstract->new;
+    my ($sql, @sql_params) = $sa->select(
+        'cost_buckets',
+        [qw{ id name cost cost_per }],
+        {
+        },
+    );
+
+    my $dbh = get_dbh();
+    my $sth = $dbh->prepare_cached( $sql )
+        or die "Couldn't prepare statement: " . $dbh->errstr;
+    $sth->execute( @sql_params )
+        or die "Couldn't execute statement: " . $sth->errstr;
+
+    my @results = ();
+    while( my $row = $sth->fetchrow_hashref ) {
+        push @results, $row;
+    }
+    $sth->finish;
+
+    $c->render( json => \@results );
+};
+
+put '/bucket' => sub {
+    my ($c) = @_;
+    my $rfid = $c->param( 'rfid' );
+    my $bucket = $c->param( 'bucket' );
+    my $qty = $c->param( 'qty' );
+
+    my $dbh = get_dbh();
+    $dbh->do( $INSERT_MEMBER_COST_SQL, {}, $rfid, $bucket, $qty )
+        or die "Can't do statement: " . $dbh->errstr;
+
+    my $id = $dbh->last_insert_id( undef, undef, undef, undef, {
+        sequence => 'member_cost_seq',
+    });
+
+    $c->res->code( 201 );
+    $c->render( text => $id );
+};
+
+get '/bucket/:id' => sub {
+    my ($c) = @_;
+    my $id = $c->param( 'id' );
+
+    my $dbh = get_dbh();
+    my $sth = $dbh->prepare_cached( $FIND_MEMBER_COST_SQL )
+        or die "Couldn't prepare statement: " . $dbh->errstr;
+    $sth->execute( $id )
+        or die "Couldn't execute statement: " . $sth->errstr;
+
+    my @results = ();
+    while( my $row = $sth->fetchrow_hashref ) {
+        $row->{is_paid} = defined $row->{paid_on} ? 1 : 0;
+        push @results, $row;
+    }
+    $sth->finish;
+
+    $c->render( json => \@results );
+};
+
+post '/bucket_paid/:id' => sub {
+    my ($c) = @_;
+    my $id = $c->param( 'id' );
+
+    my $dbh = get_dbh();
+    my $sql = $UPDATE_BUCKET_PAID_SQL_CALLBACK->();
+    my $sth = $dbh->prepare_cached( $sql )
+        or die "Can't prepare statement: " . $dbh->errstr;
+    $sth->execute( $id )
+        or die "Can't execute statement: " . $dbh->errstr;
+    $sth->finish;
+
+    $c->res->code( 200 );
+    $c->render( text => '' );
+};
+
 {
     my $dbh;
     sub get_dbh
@@ -385,6 +522,15 @@ post '/shop_open/:is_open' => sub {
         $dbh = $in_dbh;
         return 1;
     }
+
+    my $db_now_keyword = 'NOW()';
+    sub set_db_now_keyword
+    {
+        my ($set) = @_;
+        $db_now_keyword = $set;
+    }
+
+    sub get_db_now_keyword { $db_now_keyword }
 }
 
 {
