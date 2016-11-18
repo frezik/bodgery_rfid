@@ -69,7 +69,7 @@ my $FIND_LIABILITY_SQL = q{
         WHERE lower(full_name) LIKE ?
 };
 my $DUMP_EMAILS_SQL = 'SELECT id, email FROM guest_signin'
-    . ' WHERE is_mailing_list_exported = FALSE';
+    . ' WHERE is_mailing_list_exported = FALSE AND email is not null';
 
 
 
