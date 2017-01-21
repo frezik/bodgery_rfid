@@ -95,6 +95,14 @@ use constant TEST_MEMBER_COST_TABLE => q{
         entered_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 };
+use constant TEST_TEMP_TABLE => q{
+    CREATE TABLE temperatures (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        centigrade INTEGER NOT NULL,
+        room INTEGER NOT NULL,
+        date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+};
 
 
 my $tmp_obj;
@@ -121,6 +129,7 @@ sub get_test_dbh
         #TEST_GUEST_TABLE,
         TEST_COST_BUCKET_TABLE,
         TEST_MEMBER_COST_TABLE,
+        TEST_TEMP_TABLE,
     ) {
         $dbh->do( $_ ) or die "Could not create table: " . $dbh->errstr;
     }
