@@ -90,3 +90,11 @@ CREATE TABLE member_costs (
     paid_on DATETIME,
     entered_date DATETIME NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE temperatures (
+    id SERIAL PRIMARY KEY NOT NULL,
+    centigrade INTEGER NOT NULL,
+    room INTEGER NOT NULL,
+    date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ON temperatures (room, date DESC);
