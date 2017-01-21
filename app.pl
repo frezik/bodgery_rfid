@@ -34,6 +34,7 @@ use Sereal::Encoder qw{
 use Mojolicious::Plugin::CHI;
 use CHI;
 use Cache::FastMmap;
+use SQL::Functional;
 
 use constant DB_NAME     => 'bodgery_rfid';
 use constant DB_USERNAME => '';
@@ -498,6 +499,52 @@ post '/bucket_paid/:id' => sub {
     $c->res->code( 200 );
     $c->render( text => '' );
 };
+
+get '/temp/:room_id' => sub {
+    my ($c) = @_;
+    my $room_id = $c->param( 'room_id' );
+    my $dbh = get_dbh();
+
+    my ($sql, @sql_params) = SELECT [qw{ centigrade }],
+        FROM( 'temperatures' ),
+        WHERE( match( 'room', '=', $room_id ) ),
+        ORDER_BY( DESC 'date' ),
+        LIMIT 1;
+    my $sth = $dbh->prepare_cached( $sql )
+        or die "Can't prepare statement: " . $dbh->errstr;
+    $sth->execute( @sql_params )
+        or die "Can't execute statement: " . $sth->errstr;
+
+    my $temp = 0;
+    while( my @row = $sth->fetchrow_array ) {
+        ($temp) = @row;
+    }
+    $sth->finish;
+
+    $c->render( text => $temp );
+};
+
+post '/temp/:room_id/:temp' => sub {
+    my ($c) = @_;
+    my $room_id = $c->param( 'room_id' );
+    my $temp = $c->param( 'temp' );
+    die "Room param should be a number\n" if $room_id !~ /\A\d+\z/;
+    die "Temperature param should be a number\n" if $temp !~ /\A\d+\z/;
+
+    my $dbh = get_dbh();
+    my ($sql, @sql_params) = INSERT INTO 'temperatures',
+        [ 'centigrade', 'room' ],
+        VALUES [ $temp, $room_id ];
+    my $sth = $dbh->prepare_cached( $sql )
+        or die "Can't prepare statement: " . $dbh->errstr;
+    $sth->execute( @sql_params )
+        or die "Can't execute statement: " . $sth->errstr;
+    $sth->finish;
+
+    $c->render( text => $temp );
+};
+
+
 
 {
     my $dbh;
