@@ -6,3 +6,4 @@ requires 'Mojolicious::Plugin::CHI' => '0.13';
 requires 'MojoX::Renderer::Handlebars' => '0.04';
 requires 'SQL::Abstract' => '1.81';
 requires 'Sereal::Encoder' => '3.014';
+requires 'SQL::Functional' => '0.3';
