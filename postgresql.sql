@@ -7,6 +7,13 @@ INSERT INTO member_types (name) VALUES
     ('alumni'),
     ('interm');
 
+CREATE TABLE music (
+    id SERIAL PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL
+);
+CREATE INDEX ON music ( name );
+INSERT INTO music (name) VALUES ('zelda');
+
 CREATE TABLE members (
     id SERIAL PRIMARY KEY NOT NULL,
     rfid TEXT NOT NULL UNIQUE,
@@ -22,6 +29,7 @@ CREATE TABLE members (
     address TEXT NOT NULL,
     address_type TEXT NOT NULL,
     signing_member INT REFERENCES members (id),
+    music_id INT REFERENCES music (id) NOT NULL,
     notes TEXT
 );
 CREATE INDEX ON members ( lower( first_name || ' ' || last_name ) );

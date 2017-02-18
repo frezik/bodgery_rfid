@@ -33,6 +33,9 @@ use AnyEvent;
 use AnyEvent::HTTP::LWP::UserAgent;
 use Device::PCD8544;
 use Device::WebIO::RaspberryPi;
+use Game::Asset;
+use Game::Asset::SDLSound;
+use Game::Asset::SDLSound::Manager;
 
 use constant DEBUG => 1;
 
@@ -58,12 +61,18 @@ my $UNLOCK_DURATION_SEC = 15;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
 my $TMP_DIR            = '/var/tmp-ramdisk';
 my $LED_PIN       = 4;
+my $ARCHIVE = 'music.zip';
+my $RICK_ROLL_CHANCE = 1 / 100;
+my $PLAY_MUSIC_DELAY_SEC = 5;
 Getopt::Long::GetOptions(
     'host=s'     => \@SERVERS,
     'username=s' => \$USERNAME,
     'password=s' => \$PASSWORD,
     'local-db=s' => \$SEREAL_FALLBACK_DB,
     'tmp-dir=s'  => \$TMP_DIR,
+    'music-archive=s' => \$ARCHIVE,
+    'rick-roll-chance=i' => \$RICK_ROLL_CHANCE,
+    'delay-play-music=i' => \$PLAY_MUSIC_DELAY_SEC,
 );
 die "Need at least one --host\n" unless @SERVERS;
 
@@ -75,6 +84,12 @@ foreach my $server (@SERVERS) {
     my $UA = AnyEvent::HTTP::LWP::UserAgent->new;
     $UA->credentials( $host . ':443', $AUTH_REALM, $USERNAME, $PASSWORD );
 }
+
+my $MUSIC_ASSETS = Game::Asset->new({
+    file => $ARCHIVE,
+});
+my $SDL = Game::Asset::SDLSound::Manager->new;
+$SDL->init;
 
 
 my $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
@@ -207,6 +222,18 @@ sub do_success_action
     say "Good RFID";
     unlock_door( $dev );
 
+    my $play_music_timer; $play_music_timer = AnyEvent->timer(
+        after => $PLAY_MUSIC_DELAY_SEC,
+        cb => sub { 
+            # TODO fetch default music for member
+            my $music = 'zelda';
+            my $rick_roll = rand;
+            $music = 'rick_roll' if $RICK_ROLL_CHANCE < $rick_roll;
+            play_music( $music );
+            $play_music_timer;
+        },
+    );
+
     if( MAYBE_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
         # Button was pressed and then a scan happened.
         # Hold the door open much longer.
@@ -333,6 +360,14 @@ sub lock_door
     return 1;
 }
 
+sub play_music
+{
+    my ($name) = @_;
+    my $sound = $MUSIC_ASSETS->get_by_name( $name );
+    $sound->play;
+    return;
+}
+
 
 {
     get_sereal_decoder(); # Pre-fetch the Sereal::Decode object
@@ -341,7 +376,7 @@ sub lock_door
     $rpi->set_as_input( $OPEN_SWITCH );
     $rpi->set_as_output( $LED_PIN );
     $rpi->set_as_output( $LOCK_PIN );
-    $rpi->set_as_output( $UNLOCK_PIN );
+asset    $rpi->set_as_output( $UNLOCK_PIN );
 
     # Set pullup resisters for lock/unlock pins.  Have to use 
     # Wiring Pi pin numbering for this
