@@ -1,1 +1,20 @@
 RFID system for The Bodgery <http://thebodgery.org>
+
+
+PINS
+====
+Pins Used on the Rpi Model B+.  Numbered by physical header, not GPIO number.
+
+Pin     Function
+---     --------
+7       LED open signal (GPIO4)
+9       LED Ground (GND)
+11      Open/closed door switch (GPIO17)
+12      Piezo (GPIO18)
+13      Relay enable pin (GPIO27)
+14      Piezo Ground (GND)
+15      Lock Relay (GPIO22)
+16      Open/closed shop switch (GPIO23)
+17      Open/closed shop switch power (3V3)
+22      Unlock Switch (GPIO25)
+25      Relay ground (GND)
