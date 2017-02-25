@@ -32,9 +32,6 @@ use Fcntl qw( :flock );
 use AnyEvent;
 use AnyEvent::HTTP::LWP::UserAgent;
 use Device::WebIO::RaspberryPi;
-use Game::Asset;
-use Game::Asset::SDLSound;
-use Game::Asset::SDLSound::Manager;
 
 use constant DEBUG => 1;
 
@@ -84,12 +81,6 @@ foreach my $server (@SERVERS) {
 
     $UA->credentials( $host . ':443', $AUTH_REALM, $USERNAME, $PASSWORD );
 }
-
-my $MUSIC_ASSETS = Game::Asset->new({
-    file => $ARCHIVE,
-});
-my $SDL = Game::Asset::SDLSound::Manager->new;
-$SDL->init;
 
 
 my $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
@@ -222,18 +213,6 @@ sub do_success_action
     say "Good RFID";
     unlock_door( $dev );
 
-    my $play_music_timer; $play_music_timer = AnyEvent->timer(
-        after => $PLAY_MUSIC_DELAY_SEC,
-        cb => sub { 
-            # TODO fetch default music for member
-            my $music = 'zelda';
-            my $rick_roll = rand;
-            $music = 'rick_roll' if $RICK_ROLL_CHANCE < $rick_roll;
-            play_music( $music );
-            $play_music_timer;
-        },
-    );
-
     if( MAYBE_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
         # Button was pressed and then a scan happened.
         # Hold the door open much longer.
@@ -360,14 +339,6 @@ sub lock_door
     return 1;
 }
 
-sub play_music
-{
-    my ($name) = @_;
-    my $sound = $MUSIC_ASSETS->get_by_name( $name );
-    $sound->play;
-    return;
-}
-
 
 {
     get_sereal_decoder(); # Pre-fetch the Sereal::Decode object
@@ -381,7 +352,7 @@ sub play_music
     # Set pullup resisters for lock/unlock pins.  Have to use 
     # Wiring Pi pin numbering for this
     HiPi::Wiring::pullUpDnControl( $_, WPI_PUD_DOWN )
-        for 3, 6;
+        for 0, 3, 6;
 
     lock_door( $rpi );
 
