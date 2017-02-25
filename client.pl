@@ -376,7 +376,7 @@ sub play_music
     $rpi->set_as_input( $OPEN_SWITCH );
     $rpi->set_as_output( $LED_PIN );
     $rpi->set_as_output( $LOCK_PIN );
-asset    $rpi->set_as_output( $UNLOCK_PIN );
+    $rpi->set_as_output( $UNLOCK_PIN );
 
     # Set pullup resisters for lock/unlock pins.  Have to use 
     # Wiring Pi pin numbering for this
