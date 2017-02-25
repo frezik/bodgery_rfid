@@ -395,7 +395,7 @@ sub play_music
     my $input_callback = get_open_status_callbacks( $rpi );
     my $input_timer = AnyEvent->timer(
         after    => 1,
-        interval => 0.25,
+        interval => 0.10,
         cb       => $input_callback,
     );
 
