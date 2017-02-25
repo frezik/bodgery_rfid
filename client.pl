@@ -31,7 +31,6 @@ use Sereal::Decoder qw{};
 use Fcntl qw( :flock );
 use AnyEvent;
 use AnyEvent::HTTP::LWP::UserAgent;
-use Device::PCD8544;
 use Device::WebIO::RaspberryPi;
 use Game::Asset;
 use Game::Asset::SDLSound;
