@@ -75,12 +75,13 @@ Getopt::Long::GetOptions(
 );
 die "Need at least one --host\n" unless @SERVERS;
 
+
+my $UA = AnyEvent::HTTP::LWP::UserAgent->new;
 my @HOSTS;
 foreach my $server (@SERVERS) {
     my $host = 'https://' . $server;
     push @HOSTS, $host;
 
-    my $UA = AnyEvent::HTTP::LWP::UserAgent->new;
     $UA->credentials( $host . ':443', $AUTH_REALM, $USERNAME, $PASSWORD );
 }
 
