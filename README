@@ -7,11 +7,11 @@ Pins Used on the Rpi Model B+.  Numbered by physical header, not GPIO number.
 
 Pin     Function
 ---     --------
+1       Open/closed door pushbutton switch power (3.3V)
 7       LED open signal (GPIO4)
 9       LED open signal ground (GND)
 11      Open/closed door pushbutton switch (GPIO17)
 13      Relay enable pin (GPIO27)
-14      Open/closed door pushbutton switch ground (GND)
 15      Lock Relay (GPIO22)
 16      Open/closed shop toggle switch (GPIO23)
 17      Open/closed shop toggle switch power (3V3)
