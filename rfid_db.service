@@ -1,0 +1,12 @@
+# Systemd config file which downloads an initial copy of the fallback database.
+#
+[Unit]
+Description=RFID Fallback Database
+After=network-online.target var-tmp\x2dramdisk.mount
+
+[Service]
+Type=oneshot
+ExecStart=/home/pi/bin/update_fallback_db
+
+[Install]
+WantedBy=multi-user.target

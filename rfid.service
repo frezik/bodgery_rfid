@@ -6,7 +6,7 @@
 #
 [Unit]
 Description=RFID Doorbot
-After=getty.target
+After=getty.target rfid_db.service
 Conflicts=getty@tty1.service
 
 [Service]
