@@ -54,7 +54,7 @@ my $FIND_LIABILITY_SQL = q{
         WHERE lower(full_name) LIKE ?
 };
 my $DUMP_EMAILS_SQL = 'SELECT id, email FROM guest_signin'
-    . ' WHERE is_mailing_list_exported = FALSE';
+    . ' WHERE is_mailing_list_exported = FALSE AND email is not null';
 my $FIND_MEMBER_COST_SQL = q{
     SELECT bucket.name, bucket.cost, bucket.cost_per, member.paid_on
         FROM member_costs member, cost_buckets bucket
