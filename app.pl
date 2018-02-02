@@ -230,8 +230,8 @@ get '/secure/search_tags' => sub {
 get '/secure/search_entry_log' => sub {
     my ($c)    = @_;
     my $tag    = $c->param( 'tag' );
-    my $offset = $c->param( 'offset' ) // 0;
-    my $limit  = $c->param( 'limit' )  // 0;
+    my $offset = $c->param( 'offset' );
+    my $limit  = $c->param( 'limit' );
 
     my $sql = $FIND_ENTRY_LOG_SQL;
     my @sql_params = ();
@@ -241,6 +241,16 @@ get '/secure/search_entry_log' => sub {
     }
 
     $sql .= ' ORDER BY entry_time DESC';
+
+    if( defined $limit ) {
+        $sql .= ' LIMIT ?';
+        push @sql_params, $limit;
+    }
+    if( defined $offset ) {
+        $sql .= ' OFFSET ?';
+        push @sql_params, $offset;
+    }
+
 
     my $dbh = get_dbh();
     my $sth = $dbh->prepare_cached( $sql )

@@ -108,6 +108,19 @@ $t->get_ok( '/secure/search_entry_log?tag=1234', {Accept => 'text/plain'} )
         foo,bar,1234,$date_reg,1,1 \n
         foo,bar,1234,$date_reg,0,0 \n
     /mx );
+$t->get_ok( '/secure/search_entry_log?limit=2', {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_like( qr/\A
+        ,,1236,$date_reg,0,0 \n
+        foo,bar,1234,$date_reg,1,1 \n
+    \z/msx );
+$t->get_ok( '/secure/search_entry_log?limit=2&offset=2',
+    {Accept => 'text/plain'} )
+    ->status_is( '200' )
+    ->content_like( qr/\A
+        foo,bar,1234,$date_reg,0,1 \n
+        foo,bar,1234,$date_reg,1,1 \n
+    /msx );
 
 $t->get_ok( '/secure/dump_active_tags' )
     ->header_is( 'Content-type' => 'application/sereal' );
