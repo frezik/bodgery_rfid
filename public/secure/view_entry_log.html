@@ -6,11 +6,19 @@
 var tag_table;
 var msg_div;
 
+var ROW_LIMIT = 100;
+var last_row_loaded = 0;
+
 $( document ).ready(function () {
     tag_table = $( "#tag_table" );
     msg_div   = $( "#msg" );
-    get_list( 0, 0 );
+    get_list( 0, ROW_LIMIT );
 });
+
+function get_next_records()
+{
+    get_list( last_row_loaded, ROW_LIMIT );
+}
 
 function get_list ( offset, limit, rfid )
 {
@@ -30,6 +38,7 @@ function get_list ( offset, limit, rfid )
         "success": function (data, str, jqXHR) {
             msg_div.text( "" );
             update_table( data );
+            last_row_loaded += limit;
         }
     });
 }
@@ -69,7 +78,10 @@ function update_table( csv_data )
 
 <div id="msg"></div>
 
-<p><input type="button" value="Refresh" onClick="get_list( 0, 0 )"></p>
+<p>
+    <input type="button" value="Refresh" onClick="get_list( 0, ROW_LIMIT )">
+    <input type="button" value="Next Record Set" onClick="get_next_records()">
+</p>
 <p>Search for RFID tag: <input type="text" id="search_rfid" name="search_rfid">
     <input type="button" value="Search" onClick="get_list( 0, 0, 
         $('#search_rfid').val() )"></p>
