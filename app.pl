@@ -1,5 +1,5 @@
 #!perl
-# Copyright (c) 2014  Timm Murray
+# Copyright (c) 2018  Timm Murray
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without 
@@ -67,7 +67,7 @@ my $INSERT_MEMBER_COST_SQL = q{
     , ?, ?)
 };
 my $FIND_ENTRY_LOG_SQL = q{
-    SELECT members.first_name, members.last_name, entry_log.rfid,
+    SELECT members.full_name, entry_log.rfid,
             entry_log.entry_time, entry_log.is_active_tag, entry_log.is_found_tag
         FROM entry_log
         LEFT OUTER JOIN members ON entry_log.rfid = members.rfid
@@ -136,33 +136,17 @@ get '/check_tag/:tag' => sub {
     $c->render( text => $text );
 };
 
-put '/secure/new_tag/:tag' => sub {
+put '/secure/new_tag/:tag/:full_name' => sub {
     my ($c)       = @_;
     my $tag       = $c->param( 'tag' );
-    my $first_name = $c->param( 'first_name' );
-    my $last_name = $c->param( 'last_name' );
-    my $phone = $c->param( 'phone' );
-    my $email = $c->param( 'email' );
-    my $address = $c->param( 'address' );
-    my $notes = $c->param( 'notes' );
-    my $signing_member_id = $c->param( 'signing_member_id' );
-    my $member_type_id = $c->param( 'member_type_id' );
+    my $full_name = $c->param( 'full_name' );
 
     my $dbh = get_dbh();
     my $sa = SQL::Abstract->new;
     my ($sql, @params) = $sa->insert( 'members', {
         rfid      => $tag,
         active    => 1,
-        first_name => $first_name,
-        last_name => $last_name,
-        phone => $phone,
-        email => $email,
-        entry_type => 'fob',
-        address => $address,
-        address_type => 'real',
-        signing_member => $signing_member_id,
-        member_type => $member_type_id,
-        ($notes ? (notes => $notes) : ()),
+        full_name => $full_name,
     });
     $dbh->do( $sql, {}, @params )
         or die "Can't do new tag statement: " . $dbh->errstr;
@@ -225,10 +209,10 @@ get '/secure/search_tags' => sub {
     my $sa = SQL::Abstract->new;
     my ($sql, @sql_params) = $sa->select(
         'members',
-        [qw{ rfid first_name last_name active }],
+        [qw{ rfid full_name active }],
         {
             (defined $name
-                ? (q{lower(first_name || ' ' || last_name)}
+                ? (q{lower(full_name)}
                     => { 'like', lc($name) . '%' })
                 : ()),
             (defined $tag  ? ('rfid' => $tag) : ()),
