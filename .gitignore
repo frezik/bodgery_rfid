@@ -5,3 +5,4 @@ rfid_fallback.db
 .passwd
 shop_pic_conf.sh
 linode_upload_key.*
+doorbot_key.*

@@ -49,6 +49,10 @@ use constant SEREAL_DEDUPE_STRINGS => 1;
 
 use constant SHOP_OPEN_KEY => 'shop_open';
 
+use constant DOORBOT_HOST => 'pi@10.0.0.14';
+use constant DOORBOT_SSH_KEY => 'doorbot_key.rsa';
+use constant DOORBOT_OPEN_COMMAND => '/home/pi/bodgery_rfid/manual_open.sh';
+
 
 
 my $FIND_TAG_SQL = q{
@@ -552,6 +556,23 @@ post '/temp/:room_id/:temp' => sub {
     $sth->finish;
 
     $c->render( text => $temp );
+};
+
+post '/secure/open_door' => sub {
+    my ($c) =  @_;
+    my $result = system( "ssh"
+        . " -o IdentityFile=" . DOORBOT_SSH_KEY
+        . " " . DOORBOT_HOST
+        . " " . DOORBOT_OPEN_COMMAND
+    );
+
+    if( 0 == $result ) {
+        $c->render( text => "Opened" );
+    }
+    else {
+        $c->res->code( 500 );
+        $c->render( text => "Error opening door" );
+    }
 };
 
 
