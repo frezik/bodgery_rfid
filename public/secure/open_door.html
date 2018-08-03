@@ -1,0 +1,39 @@
+<html>
+<head>
+<title>Open the Front Door</title>
+<script type="text/javascript" src="/jquery-2.1.3.min.js"></script>
+<script type="text/javascript">
+
+function open_door ()
+{
+    var url  = "/secure/open_door";
+    var msg_div = $('#msg');
+
+    msg_div.text( "Door open request sent. It's probably open right now." );
+    $.ajax( url, {
+        "type": "POST",
+        "error": function (jqXHR, str, exception) {
+            msg_div.text( "Error opening door: " + str );
+        },
+        "success": function (data, str, jqXHR) {
+            msg_div.text( "Door was open" );
+        }
+    });
+
+    return 1;
+}
+
+</script>
+</head>
+<body>
+
+<h1>Open the Front Door</h1>
+
+<div id="msg"></div>
+
+<form action="/">
+<p><input type="button" value="Open" onClick="open_door()"></p>
+</form>
+
+</body>
+</html>
