@@ -228,8 +228,8 @@ get '/secure/search_tags' => sub {
     my @results = ();
     my $out = '';
     while( my $row = $sth->fetchrow_arrayref ) {
-        my ($rfid, $first_name, $last_name, $active) = @$row;
-        $out .= "$rfid,$first_name,$last_name,$active\n";
+        my ($rfid, $full_name, $active) = @$row;
+        $out .= "$rfid,$full_name,$active\n";
     }
     $sth->finish;
 
@@ -270,9 +270,9 @@ get '/secure/search_entry_log' => sub {
     my $out = '';
     while( my $row = $sth->fetchrow_arrayref ) {
         no warnings; # $full_name could be NULL, which is OK
-        my ($first_name, $last_name, $rfid, $entry_time, $is_active_tag,
+        my ($full_name, $rfid, $entry_time, $is_active_tag,
             $is_found_tag) = @$row;
-        $out .= join( ",", $first_name, $last_name, $rfid, $entry_time,
+        $out .= join( ",", $full_name, $rfid, $entry_time,
             $is_active_tag, $is_found_tag )
             . "\n";
     }

@@ -37,14 +37,7 @@ my $t = Test::Mojo->new;
 $t->get_ok( '/check_tag/1234' )
     ->status_is( '404' ); # Tag does not yet exist
 
-$t->put_ok( '/secure/new_tag/1234' => form => {
-        first_name => 'foo',
-        last_name => 'bar',
-        phone => '5551112222',
-        email => 'foo@example.com',
-        address => '1111 no where',
-        member_type_id => 1,
-})->status_is( '201' ); # Tag added
+$t->put_ok( '/secure/new_tag/1234/foo bar')->status_is( '201' ); # Tag added
 
 sleep 1;
 $t->get_ok( '/check_tag/1234' )
@@ -66,19 +59,19 @@ $t->get_ok( '/check_tag/1234' )
 
 $t->get_ok( '/secure/search_tags', {Accept => 'text/plain'} )
     ->status_is( '200' )
-    ->content_is( "1234,foo,bar,1\n" );
+    ->content_is( "1234,foo bar,1\n" );
 $t->get_ok( '/secure/search_tags?name=foo', {Accept => 'text/plain'} )
     ->status_is( '200' )
-    ->content_is( "1234,foo,bar,1\n" );
+    ->content_is( "1234,foo bar,1\n" );
 $t->get_ok( '/secure/search_tags?name=bar', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_is( "" );
 $t->get_ok( '/secure/search_tags?name=Fo', {Accept => 'text/plain'} )
     ->status_is( '200' )
-    ->content_is( "1234,foo,bar,1\n" );
+    ->content_is( "1234,foo bar,1\n" );
 $t->get_ok( '/secure/search_tags?tag=1234', {Accept => 'text/plain'} )
     ->status_is( '200' )
-    ->content_is( "1234,foo,bar,1\n" );
+    ->content_is( "1234,foo bar,1\n" );
 $t->get_ok( '/secure/search_tags?tag=3456', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_is( "" );
@@ -91,11 +84,11 @@ my $date_reg = qr/[\d\-: ]+/;
 $t->get_ok( '/secure/search_entry_log', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_like( qr/\A
-        ,,1236,$date_reg,0,0 \n
-        foo,bar,1234,$date_reg,1,1 \n
-        foo,bar,1234,$date_reg,0,1 \n
-        foo,bar,1234,$date_reg,1,1 \n
-        foo,bar,1234,$date_reg,0,0 \n
+        ,1236,$date_reg,0,0 \n
+        foo\sbar,1234,$date_reg,1,1 \n
+        foo\sbar,1234,$date_reg,0,1 \n
+        foo\sbar,1234,$date_reg,1,1 \n
+        foo\sbar,1234,$date_reg,0,0 \n
     /msx );
 $t->get_ok( '/secure/search_entry_log?tag=3456', {Accept => 'text/plain'} )
     ->status_is( '200' )
@@ -103,23 +96,23 @@ $t->get_ok( '/secure/search_entry_log?tag=3456', {Accept => 'text/plain'} )
 $t->get_ok( '/secure/search_entry_log?tag=1234', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_like( qr/\A
-        foo,bar,1234,$date_reg,1,1 \n
-        foo,bar,1234,$date_reg,0,1 \n
-        foo,bar,1234,$date_reg,1,1 \n
-        foo,bar,1234,$date_reg,0,0 \n
+        foo\sbar,1234,$date_reg,1,1 \n
+        foo\sbar,1234,$date_reg,0,1 \n
+        foo\sbar,1234,$date_reg,1,1 \n
+        foo\sbar,1234,$date_reg,0,0 \n
     /mx );
 $t->get_ok( '/secure/search_entry_log?limit=2', {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_like( qr/\A
-        ,,1236,$date_reg,0,0 \n
-        foo,bar,1234,$date_reg,1,1 \n
+        ,1236,$date_reg,0,0 \n
+        foo\sbar,1234,$date_reg,1,1 \n
     \z/msx );
 $t->get_ok( '/secure/search_entry_log?limit=2&offset=2',
     {Accept => 'text/plain'} )
     ->status_is( '200' )
     ->content_like( qr/\A
-        foo,bar,1234,$date_reg,0,1 \n
-        foo,bar,1234,$date_reg,1,1 \n
+        foo\sbar,1234,$date_reg,0,1 \n
+        foo\sbar,1234,$date_reg,1,1 \n
     /msx );
 
 $t->get_ok( '/secure/dump_active_tags' )

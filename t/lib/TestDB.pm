@@ -22,16 +22,9 @@ use constant TEST_MEMBERS_TABLE => q{
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         rfid TEXT NOT NULL UNIQUE,
         active BOOLEAN NOT NULL DEFAULT TRUE,
-        member_type INT NOT NULL REFERENCES member_types (id),
-        first_name TEXT NOT NULL,
-        last_name TEXT NOT NULL,
+        full_name TEXT NOT NULL,
         join_date DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
         end_date DATE,
-        phone TEXT NOT NULL,
-        email TEXT NOT NULL,
-        entry_type TEXT NOT NULL,
-        address TEXT NOT NULL,
-        address_type TEXT NOT NULL,
         signing_member INT REFERENCES members (id),
         notes TEXT
     );
