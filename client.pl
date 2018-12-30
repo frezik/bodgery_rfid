@@ -35,15 +35,9 @@ use Device::WebIO::RaspberryPi;
 
 use constant DEBUG => 1;
 
-use constant DOOR_OPEN_SEC        => 15;
+use constant DOOR_OPEN_SEC        => 30;
 # How long to hold the door for general open shop
 use constant DOOR_HOLD_OPEN_SEC   => 60 * 60 * 1;
-
-use constant {
-    DONT_HOLD_DOOR => 0,
-    MAYBE_HOLD_DOOR => 1,
-    DO_HOLD_DOOR => 2,
-};
 
 
 my @SERVERS          = ('app.tyrion.thebodgery.org');
@@ -53,22 +47,13 @@ my $PASSWORD         = '';
 my $LOCK_PIN         = 22;
 my $UNLOCK_PIN       = 25;
 my $OPEN_SWITCH      = 17;
-my $UNLOCK_DURATION_SEC = 15;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
-my $TMP_DIR            = '/var/tmp-ramdisk';
 my $LED_PIN       = 4;
-my $ARCHIVE = 'music.zip';
-my $RICK_ROLL_CHANCE = 1 / 100;
-my $PLAY_MUSIC_DELAY_SEC = 5;
 Getopt::Long::GetOptions(
     'host=s'     => \@SERVERS,
     'username=s' => \$USERNAME,
     'password=s' => \$PASSWORD,
     'local-db=s' => \$SEREAL_FALLBACK_DB,
-    'tmp-dir=s'  => \$TMP_DIR,
-    'music-archive=s' => \$ARCHIVE,
-    'rick-roll-chance=i' => \$RICK_ROLL_CHANCE,
-    'delay-play-music=i' => \$PLAY_MUSIC_DELAY_SEC,
 );
 die "Need at least one --host\n" unless @SERVERS;
 
@@ -82,8 +67,8 @@ foreach my $server (@SERVERS) {
     $UA->credentials( $host . ':443', $AUTH_REALM, $USERNAME, $PASSWORD );
 }
 
-
-my $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
+my $IS_DOOR_HELD_OPEN = 0;
+my $IS_BUTTON_HELD = 0;
 
 
 sub get_tag_input_event
@@ -98,7 +83,6 @@ sub get_tag_input_event
             on_inactive_tag  => \&do_inactive_tag_action,
             on_tag_not_found => \&do_tag_not_found_action,
             on_unknown_error => \&do_unknown_error_action,
-            fallback_check   => \&check_tag_sereal,
         });
     };
 }
@@ -114,9 +98,9 @@ sub check_tag
 {
     my (%args) = %{ +shift };
     my ($tag, $dev, $on_success, $on_inactive_tag, $on_tag_not_found,
-        $on_unknown_error, $fallback_check) = @args{qw[
-            tag dev on_success on_inactive_tag on_tag_not_found on_unknown_error
-            fallback_check ]};
+        $on_unknown_error) = @args{qw[
+            tag dev on_success on_inactive_tag on_tag_not_found 
+            on_unknown_error ]};
 
     # Check our local DB first, then fall back to remote servers
     if( check_tag_sereal( $tag ) ) {
@@ -207,43 +191,88 @@ sub check_tag_sereal
     }
 }
 
-sub do_success_action
 {
-    my ($dev) = @_;
-    say "Good RFID";
-    unlock_door( $dev );
+    my $close_door_timer;
+    sub do_success_action
+    {
+        my ($dev) = @_;
+        say "Good RFID";
 
-    if( MAYBE_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
-        # Button was pressed and then a scan happened.
-        # Hold the door open much longer.
-        $HOLD_DOOR_OPEN = DO_HOLD_DOOR;
-        say "Opening shop to public, holding open for " . DOOR_HOLD_OPEN_SEC . " seconds";
-
-        my $close_door_timer; $close_door_timer = AnyEvent->timer(
-            after => DOOR_HOLD_OPEN_SEC,
-            cb => sub { 
+        if( $IS_BUTTON_HELD ) {
+            if( $IS_DOOR_HELD_OPEN ) {
+                # Button held, and door is already held open, and then we 
+                # scanned a key. This means we want to override the timer and 
+                # lock the door.
+                say "No longer open to public, closing";
                 lock_door( $dev );
-                $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
-                $close_door_timer;
-            },
-        );
-    }
-    elsif( DO_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
-        say "Shop is already open, so do nothing";
-    }
-    else {
-        say "Locking door in $UNLOCK_DURATION_SEC seconds";
-        my $close_door_timer; $close_door_timer = AnyEvent->timer(
-            after => $UNLOCK_DURATION_SEC,
-            cb => sub {
-                lock_door( $dev );
-                $HOLD_DOOR_OPEN = DONT_HOLD_DOOR; # Just in case
-                $close_door_timer;
-            },
-        );
+                $IS_DOOR_HELD_OPEN = 0;
+                undef $close_door_timer;
+            }
+            else {
+                # Button held, door isn't currently held open, and then we 
+                # scanned a key. This means we want to hold the door open.
+                say "Open to public, holding open for " . DOOR_OPEN_SEC
+                    . " seconds";
+                unlock_door( $dev );
+                $IS_DOOR_HELD_OPEN = 1;
+                $close_door_timer = AnyEvent->timer(
+                    after => DOOR_HOLD_OPEN_SEC,
+                    cb => sub { 
+                        lock_door( $dev );
+                        $IS_DOOR_HELD_OPEN = 0;
+                    },
+                );
+            }
+        }
+        elsif( $IS_DOOR_HELD_OPEN ) {
+            # Door already held open, do nothing
+        }
+        else {
+            # Door isn't held open, so just open it for a moment
+            unlock_door( $dev );
+            $close_door_timer = AnyEvent->timer(
+                after => DOOR_OPEN_SEC,
+                cb => sub {
+                    lock_door( $dev );
+                },
+            );
+        }
+
+        return 1;
     }
 
-    return 1;
+    sub get_open_status_callbacks
+    {
+        my ($rpi) = @_;
+
+        my $is_open = 0;
+        my $input_callback = sub {
+            $IS_BUTTON_HELD
+                = $is_open
+                = $rpi->input_pin( $OPEN_SWITCH );
+
+            if( $IS_DOOR_HELD_OPEN ) {
+                # Door is currently held open, so we don't need to open it 
+                # otherwise. Do nothing.
+            }
+            elsif( $is_open ) {
+                # Door not currently held open, and we pressed the button. 
+                # Open it for a bit.
+                unlock_door( $rpi );
+                $close_door_timer = AnyEvent->timer(
+                    after => DOOR_OPEN_SEC,
+                    cb => sub {
+                        lock_door( $rpi );
+                    },
+                );
+            }
+
+            say "Open setting: $is_open" if DEBUG;
+            return 1;
+        };
+
+        return $input_callback;
+    }
 }
 
 sub do_inactive_tag_action
@@ -275,48 +304,6 @@ sub do_unknown_error_action
 
         return $sereal;
     }
-}
-
-sub get_open_status_callbacks
-{
-    my ($rpi) = @_;
-
-    my $is_open = 0;
-    my $input_callback = sub {
-        $is_open = $rpi->input_pin( $OPEN_SWITCH );
-
-        if( (DONT_HOLD_DOOR == $HOLD_DOOR_OPEN) && $is_open ) {
-            say "Exit button pressed, holding open for " . DOOR_OPEN_SEC . " seconds";
-            unlock_door( $rpi );
-            $HOLD_DOOR_OPEN = MAYBE_HOLD_DOOR;
-            my $input_timer; $input_timer = AnyEvent->timer(
-                after => DOOR_OPEN_SEC,
-                cb => sub { 
-                    if( DONT_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
-                        # Shouldn't have gotten here, but lock door to be safe
-                        lock_door( $rpi );
-                        $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
-                    }
-                    elsif( MAYBE_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
-                        # No scan was seen during open period, so lock it again
-                        say "No scan of tag, so lock door";
-                        lock_door( $rpi );
-                        $HOLD_DOOR_OPEN = DONT_HOLD_DOOR;
-                    }
-                    elsif( DO_HOLD_DOOR == $HOLD_DOOR_OPEN ) {
-                        say "Tag was scanned, so keep door open";
-                    }
-
-                    $input_timer;
-                },
-            );
-        }
-
-        say "Open setting: $is_open" if DEBUG;
-        return 1;
-    };
-
-    return $input_callback;
 }
 
 sub unlock_door
