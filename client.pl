@@ -33,7 +33,7 @@ use AnyEvent;
 use AnyEvent::HTTP::LWP::UserAgent;
 use Device::WebIO::RaspberryPi;
 
-use constant DEBUG => 1;
+use constant DEBUG => 0;
 
 use constant DOOR_OPEN_SEC        => 30;
 # How long to hold the door for general open shop
@@ -193,6 +193,7 @@ sub check_tag_sereal
 
 {
     my $close_door_timer;
+    my $wait_for_button_off = 0;
     sub do_success_action
     {
         my ($dev) = @_;
@@ -207,11 +208,12 @@ sub check_tag_sereal
                 lock_door( $dev );
                 $IS_DOOR_HELD_OPEN = 0;
                 undef $close_door_timer;
+                $wait_for_button_off = 1;
             }
             else {
                 # Button held, door isn't currently held open, and then we 
                 # scanned a key. This means we want to hold the door open.
-                say "Open to public, holding open for " . DOOR_OPEN_SEC
+                say "Open to public, holding open for " . DOOR_HOLD_OPEN_SEC
                     . " seconds";
                 unlock_door( $dev );
                 $IS_DOOR_HELD_OPEN = 1;
@@ -251,7 +253,15 @@ sub check_tag_sereal
                 = $is_open
                 = $rpi->input_pin( $OPEN_SWITCH );
 
-            if( $IS_DOOR_HELD_OPEN ) {
+            if( $wait_for_button_off ) {
+                # Button was held while we scanned a key to shut off the 
+                # door from being held open. We want to wait until its off 
+                # to do anything else.
+                if(! $is_open ) {
+                    $wait_for_button_off = 0;
+                }
+            }
+            elsif( $IS_DOOR_HELD_OPEN ) {
                 # Door is currently held open, so we don't need to open it 
                 # otherwise. Do nothing.
             }
