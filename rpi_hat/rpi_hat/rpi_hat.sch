@@ -305,6 +305,7 @@ F 0 "Q1" H 1991 5196 50  0000 L CNN
 F 1 "2SC1815" H 1991 5105 50  0000 L CNN
 F 2 "TO_SOT_Packages_THT:TO-92_Inline_Wide" H 2000 5075 50  0001 L CIN
 F 3 "https://media.digikey.com/pdf/Data%20Sheets/Toshiba%20PDFs/2SC1815.pdf" H 1800 5150 50  0001 L CNN
+F 4 "KSC1815YTACT-ND" H 1800 5150 50  0001 C CNN "Digikey #"
 	1    1800 5150
 	1    0    0    -1  
 $EndComp
