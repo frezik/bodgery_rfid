@@ -1,4 +1,5 @@
 EESchema Schematic File Version 4
+LIBS:rpi_hat-cache
 EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
@@ -21,6 +22,7 @@ F 0 "J1" H 5250 4978 50  0000 C CNN
 F 1 "Raspberry_Pi_2_3" H 5250 4887 50  0000 C CNN
 F 2 "Pin_Headers:Pin_Header_Straight_2x20" H 5250 3500 50  0001 C CNN
 F 3 "https://www.raspberrypi.org/documentation/hardware/raspberrypi/schematics/rpi_SCH_3bplus_1p0_reduced.pdf" H 5250 3500 50  0001 C CNN
+F 4 "1528-1785-ND" H 5250 3500 50  0001 C CNN "Digikey #"
 	1    5250 3500
 	1    0    0    -1  
 $EndComp
@@ -166,82 +168,52 @@ Wire Wire Line
 $Comp
 L Transistor_FET:2N7000 Q2
 U 1 1 5C747739
-P 7400 2750
-F 0 "Q2" H 7605 2796 50  0000 L CNN
-F 1 "2N7000" H 7605 2705 50  0000 L CNN
-F 2 "TO_SOT_Packages_THT:TO-220_Neutral123_Horizontal" H 7600 2675 50  0001 L CIN
-F 3 "https://www.fairchildsemi.com/datasheets/2N/2N7000.pdf" H 7400 2750 50  0001 L CNN
-F 4 "497-2779-5-ND" H 7400 2750 50  0001 C CNN "Digikey #"
-	1    7400 2750
+P 9150 3100
+F 0 "Q2" H 9355 3146 50  0000 L CNN
+F 1 "2N7000" H 9355 3055 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-220_Neutral123_Horizontal" H 9350 3025 50  0001 L CIN
+F 3 "https://www.fairchildsemi.com/datasheets/2N/2N7000.pdf" H 9150 3100 50  0001 L CNN
+F 4 "497-2779-5-ND" H 9150 3100 50  0001 C CNN "Digikey #"
+	1    9150 3100
 	1    0    0    -1  
 $EndComp
-Text GLabel 7050 2750 0    50   Input ~ 0
+Text GLabel 8800 3100 0    50   Input ~ 0
 Lock
-Wire Wire Line
-	7050 2750 7200 2750
 Text GLabel 4300 4200 0    50   Input ~ 0
 Lock
 Wire Wire Line
 	4300 4200 4450 4200
-Text GLabel 7500 2150 1    50   Input ~ 0
+Text GLabel 9250 2250 1    50   Input ~ 0
 Vin
 $Comp
 L power:GND #PWR0104
 U 1 1 5C747BD6
-P 7500 3050
-F 0 "#PWR0104" H 7500 2800 50  0001 C CNN
-F 1 "GND" H 7505 2877 50  0000 C CNN
-F 2 "" H 7500 3050 50  0001 C CNN
-F 3 "" H 7500 3050 50  0001 C CNN
-	1    7500 3050
+P 9250 3400
+F 0 "#PWR0104" H 9250 3150 50  0001 C CNN
+F 1 "GND" H 9255 3227 50  0000 C CNN
+F 2 "" H 9250 3400 50  0001 C CNN
+F 3 "" H 9250 3400 50  0001 C CNN
+	1    9250 3400
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	7500 2950 7500 3050
 $Comp
 L Connector:Screw_Terminal_01x02 J5
 U 1 1 5C747DD7
-P 7700 2350
-F 0 "J5" H 7780 2342 50  0000 L CNN
-F 1 "Screw_Terminal_01x02" H 7780 2251 50  0000 L CNN
-F 2 "Terminal_Blocks:TerminalBlock_Pheonix_MKDS1.5-2pol" H 7700 2350 50  0001 C CNN
-F 3 "~" H 7700 2350 50  0001 C CNN
-F 4 "277-1667-ND" H 7700 2350 50  0001 C CNN "Digikey #"
-	1    7700 2350
+P 9450 2450
+F 0 "J5" H 9530 2442 50  0000 L CNN
+F 1 "Screw_Terminal_01x02" H 9530 2351 50  0000 L CNN
+F 2 "Terminal_Blocks:TerminalBlock_Pheonix_MKDS1.5-2pol" H 9450 2450 50  0001 C CNN
+F 3 "~" H 9450 2450 50  0001 C CNN
+F 4 "277-1667-ND" H 9450 2450 50  0001 C CNN "Digikey #"
+	1    9450 2450
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	7500 2150 7500 2350
-Wire Wire Line
-	7500 2450 7500 2550
-$Comp
-L Connector:Screw_Terminal_01x02 J3
-U 1 1 5C7482A2
-P 7500 3750
-F 0 "J3" H 7580 3742 50  0000 L CNN
-F 1 "Screw_Terminal_01x02" H 7580 3651 50  0000 L CNN
-F 2 "Terminal_Blocks:TerminalBlock_Pheonix_MKDS1.5-2pol" H 7500 3750 50  0001 C CNN
-F 3 "~" H 7500 3750 50  0001 C CNN
-F 4 "277-1667-ND" H 7500 3750 50  0001 C CNN "Digikey #"
-	1    7500 3750
-	1    0    0    -1  
-$EndComp
-Text GLabel 7200 3750 0    50   Input ~ 0
-Switch
-Text GLabel 7200 3850 0    50   Input ~ 0
-SwitchPWR
-Wire Wire Line
-	7200 3750 7300 3750
-Wire Wire Line
-	7300 3850 7200 3850
+	9250 2250 9250 2450
 Text GLabel 4300 4000 0    50   Input ~ 0
 Switch
 Wire Wire Line
 	4300 4000 4450 4000
-Text GLabel 5350 2000 1    50   Input ~ 0
-SwitchPWR
-Wire Wire Line
-	5350 2200 5350 2000
 $Comp
 L Connector:Screw_Terminal_01x02 J4
 U 1 1 5C7490C9
@@ -273,46 +245,46 @@ Wire Wire Line
 $Comp
 L Device:LED D2
 U 1 1 5C74A07C
-P 9000 2700
-F 0 "D2" V 9038 2583 50  0000 R CNN
-F 1 "LED" V 8947 2583 50  0000 R CNN
-F 2 "LEDs:LED_0603" H 9000 2700 50  0001 C CNN
-F 3 "~" H 9000 2700 50  0001 C CNN
-F 4 "160-1478-1-ND" V 9000 2700 50  0001 C CNN "Digikey #"
-	1    9000 2700
+P 7000 2850
+F 0 "D2" V 7038 2733 50  0000 R CNN
+F 1 "LED" V 6947 2733 50  0000 R CNN
+F 2 "LEDs:LED_0603" H 7000 2850 50  0001 C CNN
+F 3 "~" H 7000 2850 50  0001 C CNN
+F 4 "160-1478-1-ND" V 7000 2850 50  0001 C CNN "Digikey #"
+	1    7000 2850
 	0    -1   -1   0   
 $EndComp
 $Comp
 L Device:R R4
 U 1 1 5C74A0F2
-P 9000 2350
-F 0 "R4" H 8930 2304 50  0000 R CNN
-F 1 "150Ohm" H 8930 2395 50  0000 R CNN
-F 2 "Resistors_SMD:R_0603" V 8930 2350 50  0001 C CNN
-F 3 "~" H 9000 2350 50  0001 C CNN
-F 4 "P150DBCT-ND" H 9000 2350 50  0001 C CNN "Digikey #"
-	1    9000 2350
+P 7000 2500
+F 0 "R4" H 6930 2454 50  0000 R CNN
+F 1 "150Ohm" H 6930 2545 50  0000 R CNN
+F 2 "Resistors_SMD:R_0603" V 6930 2500 50  0001 C CNN
+F 3 "~" H 7000 2500 50  0001 C CNN
+F 4 "P150DBCT-ND" H 7000 2500 50  0001 C CNN "Digikey #"
+	1    7000 2500
 	-1   0    0    1   
 $EndComp
 Wire Wire Line
-	9000 2550 9000 2500
+	7000 2700 7000 2650
 $Comp
 L power:GND #PWR0105
 U 1 1 5C74B314
-P 9000 2950
-F 0 "#PWR0105" H 9000 2700 50  0001 C CNN
-F 1 "GND" H 9005 2777 50  0000 C CNN
-F 2 "" H 9000 2950 50  0001 C CNN
-F 3 "" H 9000 2950 50  0001 C CNN
-	1    9000 2950
+P 7000 3100
+F 0 "#PWR0105" H 7000 2850 50  0001 C CNN
+F 1 "GND" H 7005 2927 50  0000 C CNN
+F 2 "" H 7000 3100 50  0001 C CNN
+F 3 "" H 7000 3100 50  0001 C CNN
+	1    7000 3100
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	9000 2950 9000 2850
-Text GLabel 9000 2100 1    50   Input ~ 0
+	7000 3100 7000 3000
+Text GLabel 7000 2250 1    50   Input ~ 0
 Lock
 Wire Wire Line
-	9000 2100 9000 2200
+	7000 2250 7000 2350
 $Comp
 L Device:Speaker LS1
 U 1 1 5C74D102
@@ -465,4 +437,51 @@ NoConn ~ 6050 2900
 NoConn ~ 6050 2700
 NoConn ~ 6050 2600
 NoConn ~ 5150 2200
+Wire Wire Line
+	9250 2550 9250 2900
+NoConn ~ 5350 2200
+$Comp
+L Connector:Screw_Terminal_01x02 J3
+U 1 1 5C7482A2
+P 8700 2500
+F 0 "J3" H 8780 2492 50  0000 L CNN
+F 1 "Screw_Terminal_01x02" H 8780 2401 50  0000 L CNN
+F 2 "Terminal_Blocks:TerminalBlock_Pheonix_MKDS1.5-2pol" H 8700 2500 50  0001 C CNN
+F 3 "~" H 8700 2500 50  0001 C CNN
+F 4 "277-1667-ND" H 8700 2500 50  0001 C CNN "Digikey #"
+	1    8700 2500
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	9250 3300 9250 3400
+Wire Wire Line
+	8900 2500 8900 2750
+Text GLabel 8850 2750 0    50   Input ~ 0
+Switch
+Wire Wire Line
+	8850 2750 8900 2750
+Text GLabel 8900 2200 1    50   Input ~ 0
+Vcc
+Wire Wire Line
+	8900 2200 8900 2400
+Wire Wire Line
+	8800 3100 8900 3100
+$Comp
+L Device:D D3
+U 1 1 5C76DE1A
+P 8900 2950
+F 0 "D3" V 8946 2871 50  0000 R CNN
+F 1 "D" V 8855 2871 50  0000 R CNN
+F 2 "Diodes_SMD:SOD-123" H 8900 2950 50  0001 C CNN
+F 3 "~" H 8900 2950 50  0001 C CNN
+F 4 "1N4148WTPMSCT-ND" V 8900 2950 50  0001 C CNN "Digikey #"
+	1    8900 2950
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	8900 2800 8900 2750
+Connection ~ 8900 2750
+Connection ~ 8900 3100
+Wire Wire Line
+	8900 3100 8950 3100
 $EndSCHEMATC
