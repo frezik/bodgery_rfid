@@ -209,7 +209,7 @@ F 4 "277-1667-ND" H 9450 2450 50  0001 C CNN "Digikey #"
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	9250 2250 9250 2450
+	9250 2250 9250 2350
 Text GLabel 4300 4000 0    50   Input ~ 0
 Switch
 Wire Wire Line
@@ -439,7 +439,7 @@ NoConn ~ 6050 2700
 NoConn ~ 6050 2600
 NoConn ~ 5150 2200
 Wire Wire Line
-	9250 2550 9250 2900
+	9250 2550 9250 2650
 NoConn ~ 5350 2200
 $Comp
 L Connector:Screw_Terminal_01x02 J3
@@ -485,4 +485,26 @@ Connection ~ 8900 2750
 Connection ~ 8900 3100
 Wire Wire Line
 	8900 3100 8950 3100
+$Comp
+L Device:D_Schottky D4
+U 1 1 5C75E921
+P 9100 2500
+F 0 "D4" V 9054 2579 50  0000 L CNN
+F 1 "D_Schottky" V 9145 2579 50  0000 L CNN
+F 2 "Diodes_SMD:SOD-123" H 9100 2500 50  0001 C CNN
+F 3 "~" H 9100 2500 50  0001 C CNN
+F 4 "MBR0540T3GOSCT-ND" V 9100 2500 50  0001 C CNN "Digikey #"
+	1    9100 2500
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	9100 2350 9250 2350
+Connection ~ 9250 2350
+Wire Wire Line
+	9250 2350 9250 2450
+Wire Wire Line
+	9100 2650 9250 2650
+Connection ~ 9250 2650
+Wire Wire Line
+	9250 2650 9250 2900
 $EndSCHEMATC
