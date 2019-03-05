@@ -1,33 +1,68 @@
 <html>
 <head>
 <title>Test RFID Tag</title>
-<script type="text/javascript" src="/jquery-2.1.3.min.js"></script>
+<script type="text/javascript" src="jquery-2.1.3.min.js"></script>
 <script type="text/javascript">
 
-$( document ).ready( function () {
-    $( "#rfid_form" ).submit( function (event ) {
-        event.preventDefault();
+var KEY_PRESSES = {
+    "48": 0
+    ,"57": 9
+    ,"56": 8
+    ,"55": 7
+    ,"54": 6
+    ,"53": 5
+    ,"52": 4
+    ,"51": 3
+    ,"50": 2
+    ,"49": 1
+};
 
-        var tag  = $('#rfid').val();
-        var msg_div = $('#msg');
-        var url  = "/check_tag/" + tag;
-    
-        $.ajax( url, {
-            "type": "GET",
-            "error": function (jqXHR, str, exception) {
-                var code = jqXHR.statusCode();
-                var status = (code == 403) ? "Inactive" :
-                    (code == 404) ? "Not found" :
-                    "Unknown Error " + code;
-                msg_div.text( "Tag " + tag + " NOT OK: " + str );
-            },
-            "success": function (data, str, jqXHR) {
-                msg_div.text( "Tag " + tag + " OK" );
-            }
-        });
-    
-        $('#rfid').val("");
-        return 1;
+
+function check_rfid( tag )
+{
+    var msg_div = $('#msg');
+
+    var url  = "/check_tag/" + tag;
+
+    $.ajax( url, {
+        "type": "GET",
+        "error": function (jqXHR, str, exception) {
+            var code = jqXHR.statusCode();
+            var status = (code == 403) ? "Inactive" :
+                (code == 404) ? "Not found" :
+                "Unknown Error " + code;
+            msg_div.text( "Tag " + tag + " NOT OK: " + str );
+            msg_div.css( "color", "red" );
+        },
+        "success": function (data, str, jqXHR) {
+            msg_div.text( "Tag " + tag + " OK" );
+            msg_div.css( "color", "green" );
+        }
+    });
+
+    return;
+}
+
+$( document ).ready( function () {
+    var tag = "";
+    var msg_div = $('#msg');
+
+    $( document ).keyup( function ( event ) {
+        var key = event.which;
+        
+        if( 13 == key ) {
+            // Enter pressed
+            check_rfid( tag );
+            tag = "";
+        }
+        else if( key in KEY_PRESSES ) {
+            var num = KEY_PRESSES[key];
+            // Ensure this stays a string
+            tag = tag + "" + num;
+        }
+        else {
+            // Ignore; not a character we want to capture
+        }
     });
 });
 
@@ -37,12 +72,7 @@ $( document ).ready( function () {
 
 <h1>Test RFID Tag</h1>
 
-<div id="msg"></div>
-
-<form id="rfid_form" action="/check_tag" method="GET" onSubmit="submit_rfid()">
-<p>RFID Tag #: <input type="text" id="rfid" name="rfid" autofocus="autofocus"></p>
-<p><input type="submit" value="Test Tag"></p>
-</form>
+<div id="msg">Ready to scan RFID tag</div>
 
 </body>
 </html>
