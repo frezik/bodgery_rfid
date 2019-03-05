@@ -21,9 +21,10 @@ var KEY_PRESSES = {
 function check_rfid( tag )
 {
     var msg_div = $('#msg');
-
     var url  = "/check_tag/" + tag;
 
+    msg_div.text( "Checking tag " + tag + " . . . " );
+    msg_div.css( "color", "black" );
     $.ajax( url, {
         "type": "GET",
         "error": function (jqXHR, str, exception) {
