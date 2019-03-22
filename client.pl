@@ -31,6 +31,8 @@ use Sereal::Decoder qw{};
 use Fcntl qw( :flock );
 use AnyEvent;
 use AnyEvent::HTTP::LWP::UserAgent;
+use Game::Asset;
+use Game::Asset::SDL;
 use Device::WebIO::RaspberryPi;
 
 use constant DEBUG => 0;
@@ -49,15 +51,20 @@ my $UNLOCK_PIN       = 25;
 my $OPEN_SWITCH      = 17;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
 my $LED_PIN       = 4;
+my $MUSIC_ZIP = 'music.zip';
+my $OPEN_SOUND_NAME = 'zelda';
 Getopt::Long::GetOptions(
     'host=s'     => \@SERVERS,
     'username=s' => \$USERNAME,
     'password=s' => \$PASSWORD,
     'local-db=s' => \$SEREAL_FALLBACK_DB,
+    'music-zip=s' => \$MUSIC_ZIP,
+    'open-sound=s' => \$OPEN_SOUND_NAME,
 );
 die "Need at least one --host\n" unless @SERVERS;
 
 
+my $OPEN_DOOR_SOUND;
 my $UA = AnyEvent::HTTP::LWP::UserAgent->new;
 my @HOSTS;
 foreach my $server (@SERVERS) {
@@ -70,6 +77,23 @@ foreach my $server (@SERVERS) {
 my $IS_DOOR_HELD_OPEN = 0;
 my $IS_BUTTON_HELD = 0;
 
+
+sub init_sound
+{
+    my ($zip_file, $sound_name) = @_;
+    return unless $zip_file && -f $zip_file;
+
+    my $asset = Game::Asset->new({
+        file => $zip_file,
+    });
+    my $sound = $asset->get_by_name( $sound_name );
+    return unless defined $sound;
+
+    my $sdl = Game::Asset::SDLSound::Manager->new;
+    $sdl->init;
+
+    return $sound;
+}
 
 sub get_tag_input_event
 {
@@ -238,6 +262,7 @@ sub check_tag_sereal
                     lock_door( $dev );
                 },
             );
+            $OPEN_DOOR_SOUND->play if defined $OPEN_DOOR_SOUND;
         }
 
         return 1;
@@ -339,6 +364,7 @@ sub lock_door
 
 {
     get_sereal_decoder(); # Pre-fetch the Sereal::Decode object
+    $OPEN_DOOR_SOUND = init_sound( $MUSIC_ZIP, $OPEN_SOUND_NAME );
 
     my $rpi = Device::WebIO::RaspberryPi->new;
     $rpi->set_as_input( $OPEN_SWITCH );
