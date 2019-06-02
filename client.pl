@@ -129,6 +129,7 @@ sub check_tag
     # Check our local DB first, then fall back to remote servers
     if( check_tag_sereal( $tag ) ) {
         $on_success->( $dev );
+        return 1;
     }
 
     my $start_time = [Time::HiRes::gettimeofday];
