@@ -31,6 +31,7 @@ use Sereal::Decoder qw{};
 use Fcntl qw( :flock );
 use AnyEvent;
 use AnyEvent::HTTP::LWP::UserAgent;
+use Cpanel::JSON::XS ();
 use Game::Asset;
 use Game::Asset::SDL;
 use Device::WebIO::RaspberryPi;
@@ -50,6 +51,7 @@ my $LOCK_PIN         = 22;
 my $UNLOCK_PIN       = 25;
 my $OPEN_SWITCH      = 17;
 my $SEREAL_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.db';
+my $JSON_FALLBACK_DB = '/var/tmp-ramdisk/rfid_fallback.json';
 my $LED_PIN       = 4;
 my $MUSIC_ZIP = 'music.zip';
 my $OPEN_SOUND_NAME = 'zelda';
@@ -127,7 +129,7 @@ sub check_tag
             on_unknown_error ]};
 
     # Check our local DB first, then fall back to remote servers
-    if( check_tag_sereal( $tag ) ) {
+    if( check_tag_json( $tag ) ) {
         $on_success->( $dev );
         return 1;
     }
@@ -205,6 +207,38 @@ sub check_tag_sereal
 
     my $decoder = get_sereal_decoder();
     $decoder->decode( $in, my $data );
+
+    if( exists $data->{$tag} ) {
+        say "Found tag in local DB";
+        return 1;
+    }
+    else {
+        say "Did not find tag in local DB";
+        return 0;
+    }
+}
+
+sub check_tag_json
+{
+    my ($tag) = @_;
+    if(! -e $JSON_FALLBACK_DB ) {
+        say "Local DB ($JSON_FALLBACK_DB) does not exist";
+        return 0;
+    }
+
+    open( my $fh, '<', $JSON_FALLBACK_DB ) or do {
+        say "Could not open local DB ($JSON_FALLBACK_DB): $!";
+        return 0;
+    };
+    flock( $fh, LOCK_SH ) or say "Could not get a shared lock on local DB"
+        . ", because [$!], checking it anyway . . .";
+
+    # TODO Slurp with AnyEvent
+    local $/ = undef;
+    my $in = <$fh>;
+    close $fh;
+
+    my $data = Cpanel::JSON::XS::decode_json( $in );
 
     if( exists $data->{$tag} ) {
         say "Found tag in local DB";
