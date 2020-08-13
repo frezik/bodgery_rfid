@@ -60,11 +60,20 @@ function update_table( csv_data )
         active_button = '<input type="button" value="' + active_button_text + '"'
             + ' onClick="' + active_button_action + '; get_list( 0, 0 )">';
 
+        var delete_button;
+        var delete_button_text;
+        var delete_button_action;
+        delete_button_text   = "Delete";
+        delete_button_action = "delete_tag('" + rfid + "')";
+        delete_button = '<input type="button" value="' + delete_button_text + '"'
+            + ' onClick="' + delete_button_action + '; get_list( 0, 0 )">';
+
         tag_table.append( '<tr class="row_data">'
             + "<td>" + name   + "</td>"
             + "<td>" + rfid   + "</td>"
             + "<td>" + active + "</td>"
             + '<td>' + active_button + '</td>'
+            + '<td>' + delete_button + '</td>'
             + "</tr>"
         );
     });
@@ -87,6 +96,30 @@ function deactivate_tag( rfid )
             get_list( 0, 0 );
         }
     });
+}
+
+function delete_tag( rfid )
+{
+
+    var url = "/secure/delete_tag/" + rfid;
+    if (confirm('Are you sure you want to delete ' + rfid + '?'))
+    {
+        if (confirm('Once more with feeling. Are you sure you want to delete ' + rfid + '?'))
+        {
+            msg_div.text( "Deleting RFID " + rfid );
+
+            $.ajax( url, {
+                "type": "DELETE",
+                "error": function (jqXHR, str, exception) {
+                    msg_div.text( "Error deleting rfid: " + str );
+                },
+                "success": function (data, str, jqXHR) {
+                    msg_div.text( "" );
+                    get_list( 0, 0 );
+                }
+            });
+        }
+    }
 }
 
 function reactivate_tag( rfid )
