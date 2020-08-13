@@ -167,7 +167,7 @@ delete '/secure/delete_tag/:tag' => sub {
     $dbh->do( $sql, {}, @params )
         or die "Can't do delete tag statement: " . $dbh->errstr;
 
-    $c->res->code( 201 );
+    $c->res->code( 200 );
     $c->render( text => '' );
 };
 
