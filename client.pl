@@ -33,7 +33,8 @@ use AnyEvent;
 use AnyEvent::HTTP::LWP::UserAgent;
 use Cpanel::JSON::XS ();
 use Game::Asset;
-use Game::Asset::SDL;
+use Game::Asset::SDLSound;
+use Game::Asset::SDLSound::Manager;
 use Device::WebIO::RaspberryPi;
 
 use constant DEBUG => 0;
@@ -43,7 +44,7 @@ use constant DOOR_OPEN_SEC        => 30;
 use constant DOOR_HOLD_OPEN_SEC   => 60 * 60 * 1;
 
 
-my @SERVERS          = ('app.tyrion.thebodgery.org');
+my @SERVERS          = ('members.shop.thebodgery.org');
 my $AUTH_REALM       = 'Required';
 my $USERNAME         = '';
 my $PASSWORD         = '';
@@ -131,6 +132,9 @@ sub check_tag
     # Check our local DB first, then fall back to remote servers
     if( check_tag_json( $tag ) ) {
         $on_success->( $dev );
+        # Note that we're only logging to one server
+        $UA->get_async( $HOSTS[0] . '/v1/rfid/log_entry/' . $tag . '/1' )
+            ->cb( sub {} );
         return 1;
     }
 
@@ -180,7 +184,7 @@ sub check_tag
             }
         }
     };
-    $UA->get_async( $host . '/check_tag/' . $tag )->cb( $got_tag_fallback );
+    $UA->get_async( $host . '/api/v1/rfid/' . $tag )->cb( $got_tag_fallback );
 
     return 1;
 }

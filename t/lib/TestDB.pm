@@ -30,13 +30,20 @@ use constant TEST_MEMBERS_TABLE => q{
     );
     CREATE INDEX ON members (lower(first_name), lower(last_name));
 };
+use constant TEST_LOCATIONS_TABLE => q{
+    CREATE TABLE locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        name TEXT NOT NULL UNIQUE
+    );
+};
 use constant TEST_LOG_TABLE => q{
     CREATE TABLE entry_log (
         id            INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         rfid          BLOB NOT NULL,
         is_active_tag BOOL NOT NULL,
         is_found_tag  BOOL NOT NULL,
-        entry_time    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        entry_time    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        location      INTEGER REFERENCES locations (id)
     );
 };
 use constant TEST_LIABILITY_TABLE => q{
@@ -117,6 +124,7 @@ sub get_test_dbh
         TEST_MEMBER_TYPES_TABLE,
         TEST_MEMBER_TYPES_INSERT,
         TEST_MEMBERS_TABLE,
+        TEST_LOCATIONS_TABLE,
         TEST_LOG_TABLE,
         TEST_LIABILITY_TABLE,
         #TEST_GUEST_TABLE,
