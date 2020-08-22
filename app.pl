@@ -148,7 +148,7 @@ get '/check_tag/:tag' => sub {
     $c->render( text => $text );
 };
 
-get '/entry/:tag/:location' => sub {
+get '/entry/:tag/#location' => sub {
     my ($c) = @_;
     my $tag = $c->param( 'tag' );
     my $location = $c->param( 'location' );
@@ -175,7 +175,7 @@ get '/entry/:tag/:location' => sub {
     else {
         $text = "Tag $tag was not found";
         $code = 404;
-        log_entry_time( $tag, 0, 0 );
+        log_entry_time( $tag, 0, 0, $location );
     }
 
     $sth->finish;

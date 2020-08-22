@@ -36,6 +36,15 @@ use constant TEST_LOCATIONS_TABLE => q{
         name TEXT NOT NULL UNIQUE
     );
 };
+use constant TEST_LOCATIONS => q{
+    INSERT INTO locations (name) VALUES
+        ( 'woodshop.door' )
+        ,( 'woodshop.tablesaw' )
+        ,( 'cleanroom.door' )
+        ,( 'garage.door' )
+        ,( 'laser.big' )
+        ,( 'laser.small' );
+};
 use constant TEST_LOG_TABLE => q{
     CREATE TABLE entry_log (
         id            INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -125,6 +134,7 @@ sub get_test_dbh
         TEST_MEMBER_TYPES_INSERT,
         TEST_MEMBERS_TABLE,
         TEST_LOCATIONS_TABLE,
+        TEST_LOCATIONS,
         TEST_LOG_TABLE,
         TEST_LIABILITY_TABLE,
         #TEST_GUEST_TABLE,
