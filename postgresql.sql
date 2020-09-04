@@ -78,7 +78,8 @@ CREATE TABLE locations (
 INSERT INTO locations (name) VALUES
     ( "cleanroom.door" )
     ,( "garage.door" )
-    ,( "woodshop.door" );
+    ,( "woodshop.door" )
+    ,( "dummy" );
 
 CREATE TABLE entry_log (
     id              SERIAL PRIMARY KEY NOT NULL,
