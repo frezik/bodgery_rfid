@@ -1,8 +1,25 @@
 RFID system for The Bodgery <http://thebodgery.org>
 
 
-PINS
-====
+# INSTALL OF SERVER
+
+Installation on a Ubuntu/Debian based Linux distribution:
+
+* Clone the respository
+* Install cpanminus and postgresql: `sudo apt-get install cpanminus postgres-all`
+* Install dependencies: `sudo cpanm --installdeps`
+* Install Starman: `sudo cpanm Starman`
+* Create a user for postgresql
+* Create a database in postgresql called "bodgery_rfid", with full access to 
+  the user created above
+* Create the tables in the database: `psql --file postgresql.sql bodgery_rfid`
+* Run the server with starman: `starman --listen :3000 app.pl`
+
+The server should now be accessible on localhost at port 3000.
+
+
+# PINS
+
 Pins Used on the Rpi Model B+.  Numbered by physical header, not GPIO number.
 
 Pin     Function
