@@ -155,6 +155,22 @@ put '/secure/new_tag/:tag/:full_name' => sub {
     $c->render( text => '' );
 };
 
+delete '/secure/delete_tag/:tag' => sub {
+    my ($c)       = @_;
+    my $tag       = $c->param( 'tag' );
+
+    my $dbh = get_dbh();
+    my $sa = SQL::Abstract->new;
+    my ($sql, @params) = $sa->delete( 'members', {
+        rfid      => $tag,
+    });
+    $dbh->do( $sql, {}, @params )
+        or die "Can't do delete tag statement: " . $dbh->errstr;
+
+    $c->res->code( 200 );
+    $c->render( text => '' );
+};
+
 post '/secure/deactivate_tag/:tag' => sub {
     my ($c) = @_;
     my $tag = $c->param( 'tag' );
