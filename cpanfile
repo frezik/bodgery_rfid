@@ -1,5 +1,6 @@
 requires 'CHI' => '0.60';
 requires 'Cache::FastMmap' => '1.44';
+requires 'Cpanel::JSON::XS' => '4.25';
 requires 'DBI' => '1.636';
 requires 'Game::Asset' => '0.3';
 requires 'Game::Asset::SDLSound' => '0.1';

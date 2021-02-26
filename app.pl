@@ -31,6 +31,7 @@ use Sereal::Encoder qw{
     SRL_SNAPPY
     SRL_ZLIB
 };
+use Cpanel::JSON::XS ();
 use Mojolicious::Plugin::CHI;
 use CHI;
 use Cache::FastMmap;
@@ -358,9 +359,21 @@ get '/secure/dump_active_tags' => sub {
 
     $sth->finish;
 
-    my $sereal = get_sereal_encoder();
-    my $encoded = $sereal->encode( \%tags );
-    $c->render( data => $encoded, format => 'sereal' );
+    my $encoded = undef;
+    my $format = undef;
+    if( $c->req->headers->accept =~ m! application/json !x ) {
+        my $json = get_json_encoder();
+        $encoded = $json->encode( \%tags );
+        $format = 'json';
+    }
+    else {
+        # Default to Sereal
+        my $sereal = get_sereal_encoder();
+        $encoded = $sereal->encode( \%tags );
+        $format = 'sereal';
+    }
+
+    $c->render( data => $encoded, format => $format );
 };
 
 get '/secure/search_liability/:name' => sub {
@@ -715,6 +728,19 @@ sub log_entry_time
     }
 }
 
+{
+    my $json;
+    sub get_json_encoder
+    {
+        return $json if defined $json;
+
+        $json = Cpanel::JSON::XS->new;
+        $json->pretty( 0 );
+
+        return $json;
+    }
+}
+
 sub get_mojo_cache
 {
     my ($c) = @_;
@@ -724,4 +750,5 @@ sub get_mojo_cache
 
 app->types->type( 'plain' => 'text/plain' );
 app->types->type( 'sereal' => 'application/sereal' );
+app->types->type( 'json' => 'application/json' );
 app->start;

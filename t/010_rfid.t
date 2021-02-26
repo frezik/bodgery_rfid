@@ -1,4 +1,4 @@
-# Copyright (c) 2014  Timm Murray
+# Copyright (c) 2020  Timm Murray
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without 
@@ -27,6 +27,7 @@ use Test::Mojo;
 use lib 't/lib';
 use TestDB;
 use Sereal::Decoder 'decode_sereal';
+use Cpanel::JSON::XS 'decode_json';
 
 use FindBin;
 require "$FindBin::Bin/../app.pl";
@@ -144,6 +145,16 @@ my $dump_tx = $t->tx;
 my $dump_response = $dump_tx->res;
 cmp_ok( $dump_response->code, '==', 200, 'Fetched active tags' );
 my $dump = decode_sereal( $dump_response->body );
+is_deeply( $dump, {
+    1234 => 1,
+});
+
+$t->get_ok( '/secure/dump_active_tags', {Accept => 'application/json'} )
+    ->header_is( 'Content-type' => 'application/json' );
+my $dump_tx = $t->tx;
+my $dump_response = $dump_tx->res;
+cmp_ok( $dump_response->code, '==', 200, 'Fetched active tags' );
+my $dump = decode_json( $dump_response->body );
 is_deeply( $dump, {
     1234 => 1,
 });
