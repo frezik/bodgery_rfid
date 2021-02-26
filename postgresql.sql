@@ -71,6 +71,16 @@ CREATE INDEX ON guest_signin (created_date);
 CREATE INDEX ON guest_signin (lower(email));
 CREATE INDEX ON guest_signin (is_mailing_list_exported);
 
+CREATE TABLE locations (
+    id SERIAL PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL UNIQUE
+);
+INSERT INTO locations (name) VALUES
+    ( "cleanroom.door" )
+    ,( "garage.door" )
+    ,( "woodshop.door" )
+    ,( "dummy" );
+
 CREATE TABLE entry_log (
     id              SERIAL PRIMARY KEY NOT NULL,
     -- This could be some random RFID tag, which we may not have in our 
@@ -78,7 +88,8 @@ CREATE TABLE entry_log (
     rfid            TEXT NOT NULL,
     entry_time      TIMESTAMP NOT NULL DEFAULT NOW(),
     is_active_tag   BOOLEAN NOT NULL,
-    is_found_tag    BOOLEAN NOT NULL
+    is_found_tag    BOOLEAN NOT NULL,
+    location        INT REFERENCES locations (id)
 );
 CREATE INDEX ON entry_log (entry_time DESC);
 

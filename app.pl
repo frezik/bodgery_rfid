@@ -61,16 +61,28 @@ my $FIND_TAG_SQL = q{
 my $INSERT_ENTRY_TIME_SQL = q{
     INSERT INTO entry_log (rfid, is_active_tag, is_found_tag) VALUES (?, ?, ?)
 };
+my $INSERT_ENTRY_TIME_LOCATION_SQL = q{
+    INSERT INTO entry_log (rfid, is_active_tag, is_found_tag, location)
+        VALUES (?, ?, ?, (
+            SELECT id FROM locations WHERE name = ? LIMIT 1
+        ))
+};
 my $INSERT_MEMBER_COST_SQL = q{
     INSERT INTO member_costs (member_id, cost_bucket_id, qty) VALUES (
         (SELECT DISTINCT id FROM members WHERE rfid = ?)
     , ?, ?)
 };
 my $FIND_ENTRY_LOG_SQL = q{
-    SELECT members.full_name, entry_log.rfid,
-            entry_log.entry_time, entry_log.is_active_tag, entry_log.is_found_tag
-        FROM entry_log
-        LEFT OUTER JOIN members ON entry_log.rfid = members.rfid
+    SELECT
+        members.full_name
+        ,entry_log.rfid
+        ,entry_log.entry_time
+        ,entry_log.is_active_tag
+        ,entry_log.is_found_tag
+        ,locations.name
+    FROM entry_log
+    LEFT OUTER JOIN members ON entry_log.rfid = members.rfid
+    LEFT OUTER JOIN locations ON entry_log.location = locations.id
 };
 my $FIND_LIABILITY_SQL = q{
     SELECT full_name, addr, city, state, zip, phone, email,
@@ -129,6 +141,41 @@ get '/check_tag/:tag' => sub {
         $text = "Tag $tag was not found";
         $code = 404;
         log_entry_time( $tag, 0, 0 );
+    }
+
+    $sth->finish;
+    $c->res->code( $code );
+    $c->render( text => $text );
+};
+
+get '/entry/:tag/#location' => sub {
+    my ($c) = @_;
+    my $tag = $c->param( 'tag' );
+    my $location = $c->param( 'location' );
+
+    my $dbh = get_dbh();
+    my $sth = $dbh->prepare_cached( $FIND_TAG_SQL )
+        or die "Can't prepare statement: " . $dbh->errstr;
+    $sth->execute( $tag )
+        or die "Can't execute statement: " . $sth->errstr;
+
+    my @row = $sth->fetchrow_array;
+    my ($text, $code) = ('', 200);
+    if( @row ) {
+        my ($id, $active) = @row;
+        if( $active ) {
+            log_entry_time( $tag, 1, 1, $location );
+        }
+        else {
+            $text = "Tag $tag is not active";
+            $code = 403;
+            log_entry_time( $tag, 0, 1, $location );
+        }
+    }
+    else {
+        $text = "Tag $tag was not found";
+        $code = 404;
+        log_entry_time( $tag, 0, 0, $location );
     }
 
     $sth->finish;
@@ -271,10 +318,15 @@ get '/secure/search_entry_log' => sub {
     while( my $row = $sth->fetchrow_arrayref ) {
         no warnings; # $full_name could be NULL, which is OK
         my ($full_name, $rfid, $entry_time, $is_active_tag,
-            $is_found_tag) = @$row;
-        $out .= join( ",", $full_name, $rfid, $entry_time,
-            $is_active_tag, $is_found_tag )
-            . "\n";
+            $is_found_tag, $location) = @$row;
+        $out .= join( ",",
+            $full_name,
+            $rfid,
+            $entry_time,
+            $is_active_tag,
+            $is_found_tag,
+            $location
+        ) . "\n";
     }
     $sth->finish;
 
@@ -622,10 +674,29 @@ post '/secure/open_door' => sub {
 
 sub log_entry_time
 {
-    my ($tag, $is_active_tag, $is_found_tag) = @_;
+    my ($tag, $is_active_tag, $is_found_tag, $location) = @_;
     my $dbh = get_dbh();
-    $dbh->do( $INSERT_ENTRY_TIME_SQL, {}, $tag, $is_active_tag, $is_found_tag )
-        or die "Can't do statement: " . $dbh->errstr;
+
+    if( defined $location && $location ne '' ) {
+        $dbh->do(
+            $INSERT_ENTRY_TIME_LOCATION_SQL,
+            {},
+            $tag,
+            $is_active_tag,
+            $is_found_tag,
+            $location,
+        ) or die "Can't do statement: " . $dbh->errstr;
+    }
+    else {
+        $dbh->do(
+            $INSERT_ENTRY_TIME_SQL,
+            {},
+            $tag,
+            $is_active_tag,
+            $is_found_tag,
+        ) or die "Can't do statement: " . $dbh->errstr;
+    }
+
     return 1;
 }
 

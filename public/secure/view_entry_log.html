@@ -56,6 +56,7 @@ function update_table( csv_data )
         var entry_time = row_data[2];
         var is_active  = row_data[3];
         var is_found   = row_data[4];
+        var location   = row_data[5];
 
         tag_table.append( '<tr class="row_data">'
             + "<td>" + name       + "</td>"
@@ -63,6 +64,7 @@ function update_table( csv_data )
             + "<td>" + entry_time + "</td>"
             + "<td>" + is_active  + "</td>"
             + "<td>" + is_found   + "</td>"
+            + "<td>" + location   + "</td>"
             + "</tr>"
         );
     });
@@ -93,6 +95,7 @@ function update_table( csv_data )
         <th>Entry Time</th>
         <th>Is Active?</th>
         <th>Is Found?</th>
+        <th>Location</th>
     </tr>
 </table>
 
